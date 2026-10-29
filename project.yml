@@ -57,6 +57,10 @@ targets:
         product: SlowQuit
       - package: ChassisPackage
         product: WindowSwitcher
+      - package: ChassisPackage
+        product: DockHoverPreview
+      - package: ChassisPackage
+        product: UsageStatistics
     info:
       path: HostApp/Info.plist
       properties:

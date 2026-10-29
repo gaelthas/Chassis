@@ -17,6 +17,8 @@ let package = Package(
         .library(name: "DockActions", targets: ["DockActions"]),
         .library(name: "SlowQuit", targets: ["SlowQuit"]),
         .library(name: "WindowSwitcher", targets: ["WindowSwitcher"]),
+        .library(name: "DockHoverPreview", targets: ["DockHoverPreview"]),
+        .library(name: "UsageStatistics", targets: ["UsageStatistics"]),
     ],
     dependencies: [
         .package(path: "Packages/PluginAPI"),
@@ -62,6 +64,22 @@ let package = Package(
                 .product(name: "PluginAPI", package: "PluginAPI"),
             ],
             path: "Chassis-Plugins/Packages/WindowSwitcher",
+            resources: [.process("Resources")]
+        ),
+        .target(
+            name: "DockHoverPreview",
+            dependencies: [
+                .product(name: "PluginAPI", package: "PluginAPI"),
+            ],
+            path: "Chassis-Plugins/Packages/DockHoverPreview",
+            resources: [.process("Resources")]
+        ),
+        .target(
+            name: "UsageStatistics",
+            dependencies: [
+                .product(name: "PluginAPI", package: "PluginAPI"),
+            ],
+            path: "Chassis-Plugins/Packages/UsageStatistics",
             resources: [.process("Resources")]
         ),
     ]

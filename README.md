@@ -69,6 +69,8 @@ swift build --package-path Chassis-Plugins     # 插件仓库（独立构建）
 | `DockActions` | 点击前台应用的 Dock 图标最小化；⌥⌘1~9 / ⌥⌘↓ 操作 Dock 应用；黑白名单 | `.accessibility` |
 | `SlowQuit` | 长按 ⌘Q 达设定时长才退出前台应用，按住期间显示进度环 | `.inputMonitoring` |
 | `WindowSwitcher` | ⌥Tab 在所有窗口间切换；图标模式默认，实时缩略图可选 | `.inputMonitoring` + `.accessibility`，可选 `.screenCapture` |
+| `DockHoverPreview` | 悬停 Dock 图标弹出该应用窗口预览，点击切换；图标默认，缩略图可选 | `.accessibility`，可选 `.screenCapture` |
+| `UsageStatistics` | 按日统计各应用前台时长（本地保留 30 天） | 无（零权限） |
 | `Harness` | 基座探针（仅 Debug 构建注册） | `.accessibility` + `.inputMonitoring`，可选 `.screenCapture` |
 
 插件全部默认关闭：未启用时不申请权限、不订阅事件。

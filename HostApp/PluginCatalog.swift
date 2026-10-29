@@ -1,7 +1,9 @@
 import DockActions
+import DockHoverPreview
 import Foundation
 import PluginAPI
 import SlowQuit
+import UsageStatistics
 import WindowSwitcher
 #if DEBUG
 import Harness
@@ -18,6 +20,8 @@ enum PluginCatalog {
             DockActionsPlugin.self,
             SlowQuitPlugin.self,
             WindowSwitcherPlugin.self,
+            DockHoverPreviewPlugin.self,
+            UsageStatisticsPlugin.self,
         ]
         #if DEBUG
         // 探针插件仅调试构建注册：它不是产品功能，不随正式版发布。
