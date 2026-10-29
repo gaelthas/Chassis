@@ -1,0 +1,96 @@
+name: Chassis
+options:
+  bundleIdPrefix: com.gaelthas
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+  developmentLanguage: en
+  generateEmptyDirectories: false
+
+packages:
+  ChassisPackage:
+    path: .
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+    SWIFT_STRICT_CONCURRENCY: complete
+    # 签名与父项目 Dock2Min 保持一致：Automatic + 开发证书。
+    # TCC 的授权记录绑定「代码签名要求」：ad-hoc 签名的要求是 cdhash，每次构建都变，
+    # 系统会把新构建当成另一个应用，于是每次编译后都要在系统设置里删掉旧条目再重新授权。
+    # 用开发证书后，要求变成 identifier + 证书，重新构建不再影响授权。
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: 4U5PHGQCK2
+    CODE_SIGN_IDENTITY: "-"
+    "CODE_SIGN_IDENTITY[sdk=macosx*]": Apple Development
+
+targets:
+  Chassis:
+    type: application
+    platform: macOS
+    sources:
+      - path: HostApp
+        excludes:
+          - "Info.plist"
+          - "Chassis.entitlements"
+    dependencies:
+      - package: ChassisPackage
+        product: PluginAPI
+      - package: ChassisPackage
+        product: PluginKit
+      - package: ChassisPackage
+        product: PluginSupport
+      - package: ChassisPackage
+        product: Harness
+    info:
+      path: HostApp/Info.plist
+      properties:
+        CFBundleName: Chassis
+        CFBundleDisplayName: Chassis
+        CFBundlePackageType: APPL
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleDevelopmentRegion: $(DEVELOPMENT_LANGUAGE)
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        NSPrincipalClass: NSApplication
+        # 常驻菜单栏，不占 Dock
+        LSUIElement: true
+        NSHumanReadableCopyright: "© 2026 gaelthas"
+        ChassisSummary: "插件化 macOS 工具基座"
+        ChassisUpdateURL: "https://github.com/gaelthas/chassis/releases"
+    entitlements:
+      path: HostApp/Chassis.entitlements
+      properties:
+        com.apple.security.app-sandbox: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.gaelthas.chassis
+        PRODUCT_NAME: Chassis
+        MARKETING_VERSION: 1.0.0
+        CURRENT_PROJECT_VERSION: 1
+        ENABLE_APP_SANDBOX: NO
+        ENABLE_HARDENED_RUNTIME: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: ""
+        COMBINE_HIDPI_IMAGES: YES
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: HostApp/Info.plist
+      configs:
+        Debug:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
+          ONLY_ACTIVE_ARCH: YES
+        Release:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: ""
+
+schemes:
+  Chassis:
+    build:
+      targets:
+        Chassis: all
+    run:
+      config: Debug
+    archive:
+      config: Release

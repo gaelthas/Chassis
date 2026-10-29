@@ -1,0 +1,83 @@
+/* 菜单栏 */
+"menuBar.icon.label" = "基座";
+"menu.openSettings" = "打开设置…";
+"menu.about" = "关于";
+"menu.quit" = "退出";
+
+/* 侧边栏 */
+"pane.general" = "通用";
+"pane.plugins" = "插件";
+"pane.permissions" = "权限";
+"pane.about" = "关于";
+
+/* 通用 */
+"general.section.startup" = "启动";
+"general.launchAtLogin" = "开机时自动启动";
+"general.launchAtLogin.caption" = "通过系统服务注册；注册失败时开关会回到真实状态。";
+"general.section.window" = "窗口与菜单栏";
+"general.showMenuBarIcon" = "在菜单栏显示图标";
+"general.showMenuBarIcon.caption" = "关闭后若要重新打开设置，请再次启动本应用。";
+"general.showSettingsOnLaunch" = "启动时打开设置窗口";
+"general.section.quit" = "退出";
+"general.quit" = "退出应用";
+"general.quit.caption" = "关闭设置窗口不会退出应用，基座仍驻留菜单栏。";
+"general.menuBar.confirm.title" = "隐藏菜单栏图标？";
+"general.menuBar.confirm.message" = "隐藏后本应用不再有常驻入口。要重新打开设置，请再次启动本应用（或在 Finder 中双击应用）。";
+"general.menuBar.confirm.action" = "仍然隐藏";
+
+"common.cancel" = "取消";
+
+/* 权限 */
+"permissions.section.required" = "必需授权";
+"permissions.section.optional" = "非必需授权";
+"permissions.note" = "授予后无需重启应用，返回本窗口即自动生效。";
+"permissions.grant" = "授权";
+"permissions.openSettings" = "打开系统设置";
+"permissions.status.granted" = "已授权";
+"permissions.status.notGranted" = "未授权";
+"permissions.status.restricted" = "受限";
+"permissions.status.notDetermined" = "未询问";
+"permissions.noConsumers" = "当前无插件使用";
+"permissions.consumers" = "%lld 个已启用插件正在使用";
+"permissions.notification.title" = "通知";
+"permissions.notification.detail" = "用于发送操作结果提示（被拒时静默降级）";
+
+"capability.accessibility.title" = "辅助功能";
+"capability.accessibility.detail" = "用于读取窗口、执行窗口操作，以及监听鼠标点击与指针移动";
+"capability.inputMonitoring.title" = "输入监控";
+"capability.inputMonitoring.detail" = "用于监听键盘事件（全局快捷键不需要此授权）";
+"capability.screenCapture.title" = "屏幕录制";
+"capability.screenCapture.detail" = "用于捕获窗口画面";
+
+"capability.badge.accessibility" = "辅助功能";
+"capability.badge.inputMonitoring" = "输入监控";
+"capability.badge.screenCapture" = "屏幕录制";
+
+"permissions.recheck" = "重新检测";
+"permissions.hint.waiting" = "已触发系统授权提示，等待系统响应…若无弹框，请点「打开系统设置」。";
+"permissions.hint.manual" = "系统未再弹出授权框（此前可能已拒绝）。请点「打开系统设置」手动开启。";
+"permissions.hint.restricted" = "该权限被系统策略限制，申请不会生效。";
+"permissions.staleNote" = "若系统设置中已开启但仍显示未授权：系统按「代码签名」识别应用。同一应用若存在多份拷贝（例如 .build 下的构建产物与 /Applications 里的副本），或开发期用 ad-hoc 签名重新构建过，系统会把它们当成不同应用，你授权的可能是另一份。处理办法：移除列表里的旧条目后重新添加当前应用，或重启应用。输入监控在部分系统版本上需要重启应用才生效。";
+
+/* 插件 */
+"plugins.empty.title" = "尚未安装任何插件";
+"plugins.empty.detail" = "基座本身不包含任何业务功能。插件以静态模块接入后，会出现在这里。";
+"plugins.select.hint" = "选择一个插件查看详情";
+"plugins.state.disabled" = "未启用";
+"plugins.state.missing" = "缺少权限";
+"plugins.state.active" = "已启用";
+"plugins.state.failed" = "激活失败";
+"plugins.missing.explain" = "该插件需要的系统授权尚未授予，因此不会被激活，也不会接收任何事件。";
+"plugins.failed.explain" = "插件在激活过程中抛出了错误。其他插件不受影响。";
+"plugins.retry" = "重试";
+"plugins.disabled.explain" = "插件当前未启用。打开右侧开关后才会申请权限与订阅事件。";
+"plugins.noSettingsView" = "该插件没有提供设置视图。";
+"plugins.resetConfiguration" = "重置此插件配置";
+
+/* 关于 */
+"about.version" = "版本 %@";
+"about.hostVersion" = "基座版本";
+"about.plugins" = "插件";
+"about.plugins.count" = "%1$lld 个已启用 / %2$lld 个已安装";
+"about.exportDiagnostics" = "导出诊断信息";
+"about.checkUpdates" = "检查更新";

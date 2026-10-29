@@ -1,0 +1,83 @@
+/* Menu bar */
+"menuBar.icon.label" = "Chassis";
+"menu.openSettings" = "Open Settings…";
+"menu.about" = "About";
+"menu.quit" = "Quit";
+
+/* Sidebar */
+"pane.general" = "General";
+"pane.plugins" = "Plugins";
+"pane.permissions" = "Permissions";
+"pane.about" = "About";
+
+/* General */
+"general.section.startup" = "Startup";
+"general.launchAtLogin" = "Launch at login";
+"general.launchAtLogin.caption" = "Registered through the system service; on failure the switch reverts to the real state.";
+"general.section.window" = "Window & Menu Bar";
+"general.showMenuBarIcon" = "Show icon in menu bar";
+"general.showMenuBarIcon.caption" = "If hidden, launch the app again to reopen settings.";
+"general.showSettingsOnLaunch" = "Open settings on launch";
+"general.section.quit" = "Quit";
+"general.quit" = "Quit application";
+"general.quit.caption" = "Closing the settings window does not quit the app; the host stays in the menu bar.";
+"general.menuBar.confirm.title" = "Hide the menu bar icon?";
+"general.menuBar.confirm.message" = "After hiding, the app has no resident entry point. Launch the app again (or double-click it in Finder) to reopen settings.";
+"general.menuBar.confirm.action" = "Hide Anyway";
+
+"common.cancel" = "Cancel";
+
+/* Permissions */
+"permissions.section.required" = "Required";
+"permissions.section.optional" = "Optional";
+"permissions.note" = "No restart needed — changes take effect as soon as you return to this window.";
+"permissions.grant" = "Grant";
+"permissions.openSettings" = "Open System Settings";
+"permissions.status.granted" = "Granted";
+"permissions.status.notGranted" = "Not granted";
+"permissions.status.restricted" = "Restricted";
+"permissions.status.notDetermined" = "Not asked";
+"permissions.noConsumers" = "No plugin is using it";
+"permissions.consumers" = "Used by %lld enabled plugin(s)";
+"permissions.notification.title" = "Notifications";
+"permissions.notification.detail" = "Used for operation results (silently degrades when denied)";
+
+"capability.accessibility.title" = "Accessibility";
+"capability.accessibility.detail" = "For reading windows, performing window actions, and watching clicks and pointer movement";
+"capability.inputMonitoring.title" = "Input Monitoring";
+"capability.inputMonitoring.detail" = "For keyboard events (global hot keys need no permission)";
+"capability.screenCapture.title" = "Screen Recording";
+"capability.screenCapture.detail" = "For capturing window images";
+
+"capability.badge.accessibility" = "Accessibility";
+"capability.badge.inputMonitoring" = "Input";
+"capability.badge.screenCapture" = "Screen";
+
+"permissions.recheck" = "Recheck";
+"permissions.hint.waiting" = "System prompt triggered, waiting for it… If no dialog appeared, click \"Open System Settings\".";
+"permissions.hint.manual" = "macOS did not show the prompt again (it was probably denied earlier). Use \"Open System Settings\" to enable it manually.";
+"permissions.hint.restricted" = "This permission is restricted by system policy; requesting it has no effect.";
+"permissions.staleNote" = "If System Settings shows it enabled but this page disagrees: macOS identifies apps by code signature. When several copies exist (e.g. a build in .build and the one in /Applications), or when an ad-hoc signed build is rebuilt, macOS treats them as different apps and the grant may belong to another copy. Remove the stale entry and add the current app again, or restart the app. Input Monitoring may require a restart on some macOS versions.";
+
+/* Plugins */
+"plugins.empty.title" = "No plugins installed";
+"plugins.empty.detail" = "The host contains no business features. Plugins appear here once they are linked as static modules.";
+"plugins.select.hint" = "Select a plugin to see details";
+"plugins.state.disabled" = "Disabled";
+"plugins.state.missing" = "Missing permission";
+"plugins.state.active" = "Enabled";
+"plugins.state.failed" = "Failed";
+"plugins.missing.explain" = "This plugin is not activated because a required permission is missing. It receives no events.";
+"plugins.failed.explain" = "The plugin threw an error while activating. Other plugins are unaffected.";
+"plugins.retry" = "Retry";
+"plugins.disabled.explain" = "The plugin is disabled. Permissions are requested and events subscribed only after you enable it.";
+"plugins.noSettingsView" = "This plugin provides no settings view.";
+"plugins.resetConfiguration" = "Reset plugin configuration";
+
+/* About */
+"about.version" = "Version %@";
+"about.hostVersion" = "Host version";
+"about.plugins" = "Plugins";
+"about.plugins.count" = "%1$lld enabled / %2$lld installed";
+"about.exportDiagnostics" = "Export Diagnostics";
+"about.checkUpdates" = "Check for Updates";
