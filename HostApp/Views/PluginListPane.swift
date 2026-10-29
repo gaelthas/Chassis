@@ -67,11 +67,6 @@ struct PluginListPane: View {
                 environment: environment,
                 manifest: target.manifest,
                 onRequestConsent: { consentTarget = ConsentTarget(manifest: target.manifest) },
-                onUninstall: {
-                    try? environment.uninstallExternalPlugin(id: target.manifest.id)
-                    PluginSettingsWindowController.shared.close(pluginID: target.manifest.id)
-                    detailTarget = nil
-                },
                 onClose: { detailTarget = nil }
             )
         }
@@ -140,6 +135,12 @@ private struct PluginRow: View {
     let onRequestConsent: (PluginManifest) -> Void
     let onShowDetail: (PluginManifest) -> Void
 
+    @State private var confirmUninstall = false
+
+    private var isActive: Bool {
+        environment.registry.isActive(entry.id)
+    }
+
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: entry.manifest.iconSystemName)
@@ -192,7 +193,34 @@ private struct PluginRow: View {
             .labelsHidden()
             .toggleStyle(.switch)
 
-            // 详情入口：开关右侧的 ⓘ，打开二级弹窗。
+            // 设置：只对已启用的插件可用（未激活时基座不构建插件视图）。
+            Button {
+                guard let view = environment.registry.makeSettingsView(for: entry.id) else { return }
+                PluginSettingsWindowController.shared.show(
+                    pluginID: entry.id,
+                    title: entry.manifest.localizedTitle ?? entry.id,
+                    content: view
+                )
+            } label: {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 14))
+            }
+            .buttonStyle(.borderless)
+            .disabled(!isActive)
+            .help(Text("plugins.openSettings"))
+
+            // 卸载：仅外部插件。
+            Button {
+                confirmUninstall = true
+            } label: {
+                Image(systemName: "trash")
+                    .font(.system(size: 14))
+            }
+            .buttonStyle(.borderless)
+            .disabled(!entry.isExternal)
+            .help(Text("plugins.uninstall"))
+
+            // 详情入口：打开二级弹窗。
             Button {
                 onShowDetail(entry.manifest)
             } label: {
@@ -204,6 +232,15 @@ private struct PluginRow: View {
         }
         .padding(.vertical, 4)
         .contentShape(Rectangle())
+        .confirmationDialog("plugins.uninstall.confirm", isPresented: $confirmUninstall, titleVisibility: .visible) {
+            Button("plugins.uninstall", role: .destructive) {
+                try? environment.uninstallExternalPlugin(id: entry.id)
+                PluginSettingsWindowController.shared.close(pluginID: entry.id)
+            }
+            Button("common.cancel", role: .cancel) {}
+        } message: {
+            Text("plugins.uninstall.message")
+        }
     }
 }
 

@@ -7,10 +7,7 @@ struct PluginDetailSheet: View {
     let environment: HostEnvironment
     let manifest: PluginManifest
     let onRequestConsent: () -> Void
-    let onUninstall: () -> Void
     let onClose: () -> Void
-
-    @State private var confirmUninstall = false
 
     private var id: String { manifest.id }
 
@@ -24,10 +21,6 @@ struct PluginDetailSheet: View {
 
     private var granted: Set<Capability> {
         environment.registry.grantedConsent(of: id)
-    }
-
-    private var isActive: Bool {
-        environment.registry.isActive(id)
     }
 
     var body: some View {
@@ -57,12 +50,6 @@ struct PluginDetailSheet: View {
             footer
         }
         .frame(width: 560, height: 540)
-        .confirmationDialog("plugins.uninstall.confirm", isPresented: $confirmUninstall, titleVisibility: .visible) {
-            Button("plugins.uninstall", role: .destructive) { onUninstall() }
-            Button("common.cancel", role: .cancel) {}
-        } message: {
-            Text("plugins.uninstall.message")
-        }
     }
 
     private var header: some View {
@@ -92,16 +79,6 @@ struct PluginDetailSheet: View {
             }
 
             Spacer()
-
-            Button("plugins.openSettings") {
-                guard let view = environment.registry.makeSettingsView(for: id) else { return }
-                PluginSettingsWindowController.shared.show(
-                    pluginID: id,
-                    title: manifest.localizedTitle ?? manifest.id,
-                    content: view
-                )
-            }
-            .disabled(!isActive)
         }
         .padding(16)
     }
@@ -110,9 +87,6 @@ struct PluginDetailSheet: View {
         HStack {
             Button("plugins.resetConfiguration") {
                 environment.registry.resetConfiguration(for: id)
-            }
-            Button("plugins.uninstall", role: .destructive) {
-                confirmUninstall = true
             }
             Spacer()
             Button("common.close") { onClose() }
