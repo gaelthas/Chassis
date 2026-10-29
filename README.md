@@ -30,8 +30,8 @@ git clone <插件仓库地址> Chassis-Plugins
 ./Scripts/build.sh         # Debug 构建（与 Dock2Min 同一开发证书），输出 .app 路径
 ./Scripts/build.sh Release # Release 构建（同一签名身份，探针插件不注册）
 ./Scripts/run.sh           # 构建后启动
-./Scripts/install.sh       # 构建 Release 并替换 /Applications/Chassis.app 后启动（推荐，TCC 授权稳定）
-./Scripts/install.sh Debug # 调试构建（包含 Harness 探针，且仍需手动安装）
+./Scripts/install.sh       # 构建并替换 /Applications/Chassis.app 后启动（默认 Release）
+./Scripts/install.sh Debug # 调试构建（含 Harness 源码，但不注册任何插件）
 ./Scripts/check-guidelines.sh   # 规范兜底检查
 swift build                # 单独校验 SwiftPM 各库 target
 ```
@@ -74,9 +74,18 @@ swift build --package-path Chassis-Plugins     # 插件仓库（独立构建）
 | `UsageStatistics` | 按日统计各应用前台时长（本地保留 30 天） | 无（零权限） |
 | `Harness` | 基座探针（仅 Debug 构建注册） | `.accessibility` + `.inputMonitoring`，可选 `.screenCapture` |
 
-**全新安装后插件列表为空**：上表插件随应用分发，但需要逐个点「安装」才会进入注册表；
-安装 ≠ 启用，启用前仍要过逐插件授权。Debug 构建额外包含 `Harness` 探针（同样需手动安装），
-因此日常安装请用 `./Scripts/install.sh`（默认 `Release`）。
+**基座不内置任何插件**：全新安装后列表为空，插件全部以 `.chassisplugin` 包导入（或从插件市场安装）。
+安装 ≠ 启用，启用前还要过逐插件授权。上表插件源码在 `Chassis-Plugins` 仓库，用下面的脚本打成包：
+
+```bash
+./Chassis-Plugins/Scripts/package-plugins.sh              # 全部
+./Chassis-Plugins/Scripts/package-plugins.sh SlowQuit     # 单个
+# 产物：Chassis-Plugins/dist/*.chassisplugin，导入「插件 → 安装插件…」
+```
+
+插件与基座共享 `PluginAPI` 类型：插件编译成动态库，用 `-undefined dynamic_lookup` 在加载时
+从基座可执行文件解析符号（基座以 `-export_dynamic` 导出），因此不需要 C ABI 胶水，
+也不会出现两份 PluginAPI。
 
 插件全部默认关闭：未启用时不申请权限、不订阅事件。
 

@@ -9,13 +9,6 @@ if ! command -v xcodegen >/dev/null 2>&1; then
   brew install xcodegen
 fi
 
-# 插件源码在独立仓库；根包会引用 Chassis-Plugins/Packages/Harness。
-if [ ! -d "Chassis-Plugins/Packages" ]; then
-  echo "⚠️  未找到插件仓库 Chassis-Plugins/。" >&2
-  echo "    工程仍可生成，但构建会失败。请先在当前目录执行：" >&2
-  echo "    git clone <插件仓库地址> Chassis-Plugins" >&2
-fi
-
 if [ ! -f "HostApp/Resources/Assets.xcassets/AppIcon.appiconset/icon_512x512@2x.png" ]; then
   echo "生成占位图标…"
   swift Scripts/GenerateIcons/main.swift

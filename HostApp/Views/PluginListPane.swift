@@ -17,18 +17,9 @@ struct PluginListPane: View {
         var id: String { manifest.id }
     }
 
-    private var availableOffers: [PluginManifest] {
-        environment.bundledOffers.filter { !environment.isBundledPluginInstalled($0.id) }
-    }
-
     var body: some View {
         VStack(spacing: 0) {
             header
-
-            if !availableOffers.isEmpty {
-                offers
-                Divider()
-            }
 
             if environment.registry.installedCount == 0 {
                 ContentUnavailableView {
@@ -105,45 +96,6 @@ struct PluginListPane: View {
         .padding(.vertical, 10)
     }
 
-    /// 随应用分发但尚未安装的插件。默认零插件时这里是唯一的入口。
-    private var offers: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("plugins.bundled.section")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                Text("plugins.bundled.detail")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            ForEach(availableOffers, id: \.id) { manifest in
-                HStack(spacing: 10) {
-                    Image(systemName: manifest.iconSystemName)
-                        .font(.system(size: 16))
-                        .frame(width: 22)
-                        .foregroundStyle(.tint)
-                    Text(manifest.title, bundle: manifest.resourceBundle)
-                    Text(verbatim: "v\(manifest.version)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(manifest.summary, bundle: manifest.resourceBundle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                    Spacer()
-                    Button("plugins.bundled.install") {
-                        environment.installBundledPlugin(id: manifest.id)
-                    }
-                }
-            }
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
     @ViewBuilder
     private var detail: some View {
         if let id = selection, let manifest = environment.registry.manifest(of: id) {
@@ -152,11 +104,7 @@ struct PluginListPane: View {
                 manifest: manifest,
                 onRequestConsent: { consentTarget = ConsentTarget(manifest: manifest) },
                 onUninstall: {
-                    if environment.isBundledPlugin(id) {
-                        environment.uninstallBundledPlugin(id: id)
-                    } else {
-                        try? environment.uninstallExternalPlugin(id: id)
-                    }
+                    try? environment.uninstallExternalPlugin(id: id)
                     selection = nil
                 }
             )

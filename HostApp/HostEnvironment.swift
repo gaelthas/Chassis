@@ -65,7 +65,7 @@ final class HostEnvironment {
         guard !bootstrapped else { return }
         bootstrapped = true
 
-        registry.register(PluginCatalog.installed(settings.installedBuiltinPluginIDs))
+        // 基座不内置任何插件：全部通过 .chassisplugin 导入或市场安装。
         refreshExternalPlugins()
 
         gate.openSystemSettings = { capability in
@@ -85,36 +85,6 @@ final class HostEnvironment {
         hostLogger.info(
             "基座启动完成：\(registry.installedCount) 个插件，\(registry.enabledCount) 个已激活，活动输入源 \(inputBus.activeTapCount) 个"
         )
-    }
-
-    // MARK: - 内置插件（需手动安装）
-
-    var bundledOffers: [PluginManifest] {
-        PluginCatalog.offers.map { $0.manifest }
-    }
-
-    func isBundledPlugin(_ id: String) -> Bool {
-        PluginCatalog.isOffer(id)
-    }
-
-    func isBundledPluginInstalled(_ id: String) -> Bool {
-        settings.installedBuiltinPluginIDs.contains(id)
-    }
-
-    /// 安装内置插件：只写注册集合，不激活；启用前仍要过逐插件授权。
-    func installBundledPlugin(id: String) {
-        guard PluginCatalog.isOffer(id) else { return }
-        settings.installedBuiltinPluginIDs.insert(id)
-        registry.register(PluginCatalog.installed(settings.installedBuiltinPluginIDs))
-        // 重新按启用/授权状态求值：若该插件此前已被启用，安装后应立即回到原状态。
-        registry.activateAll()
-        hostLogger.info("已安装内置插件：\(id)")
-    }
-
-    func uninstallBundledPlugin(id: String) {
-        registry.unregister(id: id)
-        settings.installedBuiltinPluginIDs.remove(id)
-        hostLogger.info("已卸载内置插件：\(id)")
     }
 
     // MARK: - 外部插件

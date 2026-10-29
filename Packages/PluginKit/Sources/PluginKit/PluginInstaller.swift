@@ -112,8 +112,8 @@ public final class PluginInstaller {
         guard Self.isValidIdentifier(package.id) else {
             throw PluginInstallError.invalidIdentifier(package.id)
         }
-        guard !package.id.hasPrefix("com.gaelthas.plugin.") else {
-            // 保留前缀给内置插件，避免外部包冒充。
+        // 基座不再内置任何插件，只禁止占用基座自身的 bundle id。
+        guard package.id != AppIdentity.bundleIdentifier else {
             throw PluginInstallError.duplicateWithBuiltIn(package.id)
         }
 

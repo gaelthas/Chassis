@@ -14,7 +14,7 @@ packages:
     path: Packages/PluginAPI
   PluginSupport:
     path: Packages/PluginSupport
-  # 根包：PluginKit（基座机制）+ Harness（源码在 Chassis-Plugins 仓库）
+  # 根包：只剩基座机制（插件不在链接列表内）
   ChassisPackage:
     path: .
 
@@ -49,18 +49,6 @@ targets:
         product: PluginSupport
       - package: ChassisPackage
         product: PluginKit
-      - package: ChassisPackage
-        product: Harness
-      - package: ChassisPackage
-        product: DockActions
-      - package: ChassisPackage
-        product: SlowQuit
-      - package: ChassisPackage
-        product: WindowSwitcher
-      - package: ChassisPackage
-        product: DockHoverPreview
-      - package: ChassisPackage
-        product: UsageStatistics
     info:
       path: HostApp/Info.plist
       properties:
@@ -95,6 +83,12 @@ targets:
         CURRENT_PROJECT_VERSION: 1
         ENABLE_APP_SANDBOX: NO
         ENABLE_HARDENED_RUNTIME: YES
+        # Swift 插件包通过 `-undefined dynamic_lookup` 引用基座里的 PluginAPI 符号，
+        # 主可执行文件必须把这些符号导出到动态符号表。
+        OTHER_LDFLAGS:
+          - $(inherited)
+          - -Xlinker
+          - -export_dynamic
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: ""
         COMBINE_HIDPI_IMAGES: YES
@@ -104,6 +98,9 @@ targets:
         Debug:
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
           ONLY_ACTIVE_ARCH: YES
+          # 关闭调试 dylib：插件包通过 dynamic_lookup 从主可执行文件解析符号，
+          # 代码若被拆到 Chassis.debug.dylib 里就找不到 PluginAPI。
+          ENABLE_DEBUG_DYLIB: NO
         Release:
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: ""
 

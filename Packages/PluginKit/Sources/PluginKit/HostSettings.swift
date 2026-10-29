@@ -15,7 +15,6 @@ public final class HostSettings {
         static let marketplacePublicKey = "host.marketplacePublicKey"
         static let autoCheckPluginUpdates = "host.autoCheckPluginUpdates"
         static let autoInstallPluginUpdates = "host.autoInstallPluginUpdates"
-        static let installedBuiltinPlugins = "host.installedBuiltinPlugins"
     }
 
     @ObservationIgnored private let defaults: UserDefaults
@@ -59,11 +58,6 @@ public final class HostSettings {
         didSet { defaults.set(autoInstallPluginUpdates, forKey: Key.autoInstallPluginUpdates) }
     }
 
-    /// 用户已「安装」的内置插件 ID。全新安装时为空——默认零插件。
-    public var installedBuiltinPluginIDs: Set<String> {
-        didSet { defaults.set(Array(installedBuiltinPluginIDs), forKey: Key.installedBuiltinPlugins) }
-    }
-
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         let stored = defaults.array(forKey: Key.enabledPlugins) as? [String] ?? []
@@ -79,6 +73,5 @@ public final class HostSettings {
         marketplacePublicKey = defaults.string(forKey: Key.marketplacePublicKey) ?? bundledKey
         autoCheckPluginUpdates = defaults.object(forKey: Key.autoCheckPluginUpdates) as? Bool ?? true
         autoInstallPluginUpdates = defaults.object(forKey: Key.autoInstallPluginUpdates) as? Bool ?? false
-        installedBuiltinPluginIDs = Set(defaults.array(forKey: Key.installedBuiltinPlugins) as? [String] ?? [])
     }
 }

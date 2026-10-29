@@ -34,7 +34,10 @@ public final class ExternalPluginLoader {
 
     private struct LoadedLibrary {
         let handle: UnsafeMutableRawPointer
-        let vtable: UnsafeMutablePointer<chassis_plugin_v1>
+        /// C ABI 插件（任意语言）
+        let vtable: UnsafeMutablePointer<chassis_plugin_v1>?
+        /// Swift 插件（与基座共享 PluginAPI 类型，无需桥接）
+        let swiftEntry: (@convention(c) () -> UnsafeMutableRawPointer?)?
     }
 
     private let hostVersion: String
@@ -99,21 +102,26 @@ public final class ExternalPluginLoader {
 
     private func instantiate(record: InstalledPluginRecord, package: PluginPackageManifest) throws -> any FeaturePlugin {
         let library = try loadLibrary(record: record)
+        let manifest = makeManifest(package: package, bundlePath: record.path)
 
-        guard library.vtable.pointee.struct_size >= MemoryLayout<chassis_plugin_v1>.size else {
+        // Swift 插件：直接拿到实现了 FeaturePlugin 的实例。类型来自基座映像，
+        // 插件库用 `-undefined dynamic_lookup` 在加载时解析符号，因此不存在两份 PluginAPI。
+        if let entry = library.swiftEntry {
+            guard let raw = entry() else { throw LoadError.createFailed }
+            let object = Unmanaged<AnyObject>.fromOpaque(raw).takeRetainedValue()
+            guard let plugin = object as? any FeaturePlugin else {
+                throw LoadError.entryMissing
+            }
+            logStore.append(level: .info, pluginID: record.id, message: "Swift 插件实例已创建")
+            return SwiftBundleAdapter(manifest: manifest, plugin: plugin)
+        }
+
+        guard let vtable = library.vtable else { throw LoadError.entryMissing }
+        guard vtable.pointee.struct_size >= MemoryLayout<chassis_plugin_v1>.size else {
             throw LoadError.abiMismatch(0)
         }
-        guard let activate = library.vtable.pointee.activate,
-              let deactivate = library.vtable.pointee.deactivate else {
-            throw LoadError.entryMissing
-        }
-        _ = activate
-        _ = deactivate
 
-        return ExternalPluginAdapter(
-            manifest: makeManifest(package: package, bundlePath: record.path),
-            vtable: library.vtable
-        )
+        return ExternalPluginAdapter(manifest: manifest, vtable: vtable)
     }
 
     private func loadLibrary(record: InstalledPluginRecord) throws -> LoadedLibrary {
@@ -135,6 +143,15 @@ public final class ExternalPluginLoader {
             let message = String(cString: dlerror() ?? UnsafeMutablePointer<CChar>.allocate(capacity: 0))
             throw LoadError.openFailed(message)
         }
+        if let swiftSymbol = dlsym(handle, "chassis_swift_plugin_entry") {
+            typealias SwiftEntry = @convention(c) () -> UnsafeMutableRawPointer?
+            let entry = unsafeBitCast(swiftSymbol, to: SwiftEntry.self)
+            let loaded = LoadedLibrary(handle: handle, vtable: nil, swiftEntry: entry)
+            libraries[record.path] = loaded
+            logStore.append(level: .info, pluginID: record.id, message: "Swift 插件动态库已加载")
+            return loaded
+        }
+
         guard let symbol = dlsym(handle, "chassis_plugin_entry") else {
             dlclose(handle)
             throw LoadError.entryMissing
@@ -147,7 +164,7 @@ public final class ExternalPluginLoader {
             throw LoadError.abiMismatch(0)
         }
 
-        let loaded = LoadedLibrary(handle: handle, vtable: vtable)
+        let loaded = LoadedLibrary(handle: handle, vtable: vtable, swiftEntry: nil)
         libraries[record.path] = loaded
         logStore.append(level: .info, pluginID: record.id, message: "外部插件动态库已加载")
         return loaded
@@ -243,4 +260,33 @@ struct ExternalSettingsViewHost: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {}
+}
+
+/// Swift 插件的适配器：插件自己实现了 `FeaturePlugin`，这里只做转发，
+/// 并暴露实例级 manifest（外部插件没有编译期清单）。
+@MainActor
+final class SwiftBundleAdapter: FeaturePlugin {
+    static var manifest: PluginManifest { fatalError("外部插件不支持静态 manifest") }
+
+    let manifest: PluginManifest
+    private let plugin: any FeaturePlugin
+
+    init() { fatalError("外部插件请通过 ExternalPluginLoader 创建") }
+
+    init(manifest: PluginManifest, plugin: any FeaturePlugin) {
+        self.manifest = manifest
+        self.plugin = plugin
+    }
+
+    func activate(context: PluginContext) throws {
+        try plugin.activate(context: context)
+    }
+
+    func deactivate() {
+        plugin.deactivate()
+    }
+
+    func makeSettingsView() -> AnyView {
+        plugin.makeSettingsView()
+    }
 }

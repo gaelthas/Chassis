@@ -42,7 +42,7 @@ fi
 #    避免把市场上的工具脚本（里面也有同名字段）误判成插件。
 HOST_VERSION=$(grep -m1 'MARKETING_VERSION:' project.yml | sed 's/.*MARKETING_VERSION: *//' | tr -d '"')
 MANIFEST_FILES=$(find "$PLUGINS_DIR" -name 'manifest.json' -not -path '*/.build/*')
-for file in $(grep -Rl 'FeaturePlugin' "$PLUGINS_DIR" --include='*.swift' | grep -v '/Market/') $MANIFEST_FILES; do
+for file in $(grep -Rl ': FeaturePlugin' "$PLUGINS_DIR" --include='*.swift' | grep -v '/Market/') $MANIFEST_FILES; do
   # 兼容 Swift 的 `minHostVersion: "1.0.0"` 与 JSON 的 `"minHostVersion": "1.0.0"`
   PLUGIN_VERSION=$(grep -oE 'minHostVersion["]?[: ]+"?[0-9]+\.[0-9]+\.[0-9]+' "$file" | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
   if [ -z "$PLUGIN_VERSION" ]; then
@@ -55,7 +55,7 @@ for file in $(grep -Rl 'FeaturePlugin' "$PLUGINS_DIR" --include='*.swift' | grep
 done
 
 # 4. 插件必须实现 makeSettingsView
-for file in $(grep -Rl 'FeaturePlugin' "$PLUGINS_DIR" --include='*.swift'); do
+for file in $(grep -Rl ': FeaturePlugin' "$PLUGINS_DIR" --include='*.swift'); do
   # 只看真正的内置插件实现；外部插件走 C ABI，没有 makeSettingsView 的 Swift 实现。
   if grep -q 'func makeSettingsView' "$file"; then
     ok "$(basename "$file") 实现了 makeSettingsView"
