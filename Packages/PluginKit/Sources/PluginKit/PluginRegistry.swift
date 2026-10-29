@@ -3,10 +3,47 @@ import Observation
 import PluginAPI
 import SwiftUI
 
+/// 外部插件的安装信息（UI 展示与诊断用）。
+public struct ExternalPluginInfo: Equatable, Sendable {
+    public let version: String
+    public let teamID: String?
+    public let installedAt: Date
+    public let path: String
+
+    public init(version: String, teamID: String?, installedAt: Date, path: String) {
+        self.version = version
+        self.teamID = teamID
+        self.installedAt = installedAt
+        self.path = path
+    }
+}
+
+public enum PluginSource: Equatable, Sendable {
+    case builtIn
+    case external(ExternalPluginInfo)
+}
+
+/// 外部插件加载器构造出的注册项：清单可在不加载代码时获得，实例按需创建。
+public struct ExternalPluginRegistration {
+    public let manifest: PluginManifest
+    public let info: ExternalPluginInfo
+    let makeInstance: @MainActor () throws -> any FeaturePlugin
+
+    public init(
+        manifest: PluginManifest,
+        info: ExternalPluginInfo,
+        makeInstance: @escaping @MainActor () throws -> any FeaturePlugin
+    ) {
+        self.manifest = manifest
+        self.info = info
+        self.makeInstance = makeInstance
+    }
+}
+
 /// 插件生命周期的唯一管理者。
 ///
-/// 状态机（§6.1）：`disabled → missingCapabilities → active`，`active` 因权限收回回到
-/// `missingCapabilities`，`activate` 抛错进 `failed`。开关只有一层：启用 / 未启用。
+/// 状态机（§6.1）：`disabled → missingCapabilities → active`，权限或逐插件授权被收回
+/// 都会回到 `missingCapabilities`。启用开关仍然只有一层：启用 / 未启用。
 @MainActor
 @Observable
 public final class PluginRegistry {
@@ -21,12 +58,26 @@ public final class PluginRegistry {
         public let manifest: PluginManifest
         public let state: State
         public let isEnabled: Bool
+        public let source: PluginSource
+        /// 已声明但用户尚未授予（或系统尚未授予）的能力。
+        public let missingConsent: Set<Capability>
 
         public var id: String { manifest.id }
+        public var isExternal: Bool {
+            if case .external = source { return true }
+            return false
+        }
+    }
+
+    private struct Registration {
+        let manifest: PluginManifest
+        let source: PluginSource
+        let makeInstance: @MainActor () throws -> any FeaturePlugin
     }
 
     @ObservationIgnored private let settings: HostSettings
     @ObservationIgnored private let gate: PermissionGate
+    @ObservationIgnored private let consents: PluginConsentStore
     @ObservationIgnored private let inputBus: InputBusCore
     @ObservationIgnored private let hotKeys: HotKeyArbitrator
     @ObservationIgnored private let notifier: NotifierImpl
@@ -34,8 +85,7 @@ public final class PluginRegistry {
     @ObservationIgnored private let logStore: LogStore
     @ObservationIgnored private let hostVersion: String
 
-    private var types: [any FeaturePlugin.Type] = []
-    private var manifests: [PluginManifest] = []
+    private var registrations: [Registration] = []
     private var states: [String: State] = [:]
     private var instances: [String: any FeaturePlugin] = [:]
     private var contexts: [String: PluginContextImpl] = [:]
@@ -43,6 +93,7 @@ public final class PluginRegistry {
     public init(
         settings: HostSettings,
         gate: PermissionGate,
+        consents: PluginConsentStore,
         inputBus: InputBusCore,
         hotKeys: HotKeyArbitrator,
         notifier: NotifierImpl,
@@ -52,6 +103,7 @@ public final class PluginRegistry {
     ) {
         self.settings = settings
         self.gate = gate
+        self.consents = consents
         self.inputBus = inputBus
         self.hotKeys = hotKeys
         self.notifier = notifier
@@ -60,7 +112,7 @@ public final class PluginRegistry {
         self.hostVersion = hostVersion
 
         hotKeys.titleProvider = { [weak self] owner in
-            guard let manifest = self?.manifests.first(where: { $0.id == owner }) else { return owner }
+            guard let manifest = self?.manifest(of: owner) else { return owner }
             return manifest.localizedTitle ?? owner
         }
         notifier.isPluginActive = { [weak self] owner in
@@ -74,30 +126,70 @@ public final class PluginRegistry {
         }
     }
 
-    // MARK: - 注册与查询
+    // MARK: - 注册
 
     public func register(_ pluginTypes: [any FeaturePlugin.Type]) {
-        types = pluginTypes
-        manifests = pluginTypes.map { $0.manifest }
-        for manifest in manifests where states[manifest.id] == nil {
-            states[manifest.id] = .disabled
+        let external = registrations.filter { registration in
+            if case .external = registration.source { return true } else { return false }
+        }
+        registrations = pluginTypes.map { type in
+            Registration(
+                manifest: type.manifest,
+                source: .builtIn,
+                makeInstance: { type.init() }
+            )
+        } + external
+
+        for registration in registrations where states[registration.manifest.id] == nil {
+            states[registration.manifest.id] = .disabled
         }
     }
 
+    /// 安装/发现外部插件后调用。同 id 视为升级：保留启用状态与配置，重建实例。
+    public func registerExternal(_ items: [ExternalPluginRegistration]) {
+        for item in items {
+            let id = item.manifest.id
+            registrations.removeAll { $0.manifest.id == id }
+            registrations.append(
+                Registration(manifest: item.manifest, source: .external(item.info), makeInstance: item.makeInstance)
+            )
+            deactivateInstance(id: id)
+            contexts.removeValue(forKey: id)
+            states[id] = .disabled
+            logStore.append(level: .info, pluginID: id, message: "外部插件已登记 v\(item.manifest.version)")
+        }
+    }
+
+    /// 卸载：先停用并清理，再从注册表移除。
+    public func unregister(id: String) {
+        deactivateInstance(id: id)
+        instances.removeValue(forKey: id)
+        contexts.removeValue(forKey: id)
+        states.removeValue(forKey: id)
+        registrations.removeAll { $0.manifest.id == id }
+        settings.enabledPluginIDs.remove(id)
+        consents.clear(id)
+    }
+
+    // MARK: - 查询
+
     public var entries: [Entry] {
-        manifests.map { manifest in
-            Entry(
+        registrations.map { registration in
+            let manifest = registration.manifest
+            return Entry(
                 manifest: manifest,
                 state: state(of: manifest.id),
-                isEnabled: settings.enabledPluginIDs.contains(manifest.id)
+                isEnabled: settings.enabledPluginIDs.contains(manifest.id),
+                source: registration.source,
+                missingConsent: missingConsent(of: manifest.id)
             )
         }
     }
 
-    public var installedCount: Int { manifests.count }
+    public var installedCount: Int { registrations.count }
 
     public var enabledCount: Int {
-        manifests.filter { isActive($0.id) }.count
+        registrations.filter { isActive($0.manifest.id) }.count
     }
 
     public func state(of id: String) -> State {
@@ -109,21 +201,89 @@ public final class PluginRegistry {
     }
 
     public func manifest(of id: String) -> PluginManifest? {
-        manifests.first { $0.id == id }
+        registrations.first { $0.manifest.id == id }?.manifest
     }
 
-    /// 插件设置视图只在 active 时构建：半初始化或权限缺失时构建极易触发插件内部的隐式假设（§6.6）。
+    public func source(of id: String) -> PluginSource? {
+        registrations.first { $0.manifest.id == id }?.source
+    }
+
     public func makeSettingsView(for id: String) -> AnyView? {
         guard isActive(id), let instance = instances[id] else { return nil }
         return instance.makeSettingsView()
     }
 
     public func enabledConsumers(of capability: Capability) -> [String] {
-        manifests.filter { manifest in
-            settings.enabledPluginIDs.contains(manifest.id)
-                && (manifest.requiredCapabilities.contains(capability) || manifest.optionalCapabilities.contains(capability))
+        registrations
+            .map(\.manifest)
+            .filter { manifest in
+                settings.enabledPluginIDs.contains(manifest.id)
+                    && (manifest.requiredCapabilities.contains(capability) || manifest.optionalCapabilities.contains(capability))
+            }
+            .map(\.id)
+    }
+
+    // MARK: - 逐插件授权
+
+    /// 已生效的授权（清单指纹匹配才算数：插件升级新增能力后必须重新确认）。
+    public func grantedConsent(of id: String) -> Set<Capability> {
+        guard let manifest = manifest(of: id),
+              let consent = consents.consent(for: id),
+              consent.manifestFingerprint == PluginConsentStore.fingerprint(manifest: manifest) else {
+            return []
         }
-        .map(\.id)
+        return consent.granted
+    }
+
+    public func declaredCapabilities(of id: String) -> Set<Capability> {
+        guard let manifest = manifest(of: id) else { return [] }
+        return manifest.requiredCapabilities.union(manifest.optionalCapabilities)
+    }
+
+    public func missingConsent(of id: String) -> Set<Capability> {
+        declaredCapabilities(of: id).subtracting(grantedConsent(of: id))
+    }
+
+    public func needsConsentPrompt(_ id: String) -> Bool {
+        guard let manifest = manifest(of: id) else { return false }
+        let declared = manifest.requiredCapabilities.union(manifest.optionalCapabilities)
+        guard !declared.isEmpty else { return false }
+        return !manifest.requiredCapabilities.isSubset(of: grantedConsent(of: id))
+    }
+
+    /// 用户确认授权。`required` 必须全部包含，否则拒绝写入（避免「半授权」状态）。
+    @discardableResult
+    public func grantConsent(_ id: String, capabilities: Set<Capability>) -> Bool {
+        guard let manifest = manifest(of: id) else { return false }
+        let declared = manifest.requiredCapabilities.union(manifest.optionalCapabilities)
+        let sanitized = capabilities.intersection(declared)
+        guard manifest.requiredCapabilities.isSubset(of: sanitized) else { return false }
+
+        consents.set(
+            PluginConsent(granted: sanitized, manifestFingerprint: PluginConsentStore.fingerprint(manifest: manifest)),
+            for: id
+        )
+        evaluate(id: id)
+        logStore.append(level: .info, pluginID: id, message: "插件授权：\(sanitized.map(\.rawValue).sorted().joined(separator: ","))")
+        return true
+    }
+
+    /// 撤销单项。撤销 required 会立即停用插件（与系统权限被收回的行为一致）。
+    public func revokeConsent(_ id: String, capability: Capability) {
+        guard let manifest = manifest(of: id) else { return }
+        var granted = grantedConsent(of: id)
+        granted.remove(capability)
+        consents.set(
+            PluginConsent(granted: granted, manifestFingerprint: PluginConsentStore.fingerprint(manifest: manifest)),
+            for: id
+        )
+        evaluate(id: id)
+        logStore.append(level: .info, pluginID: id, message: "撤销插件授权：\(capability.rawValue)")
+    }
+
+    /// 系统授权 + 插件授权的合取。插件侧 `permissions.status` 看到的就是这个结果。
+    public func effectiveStatus(_ capability: Capability, for id: String) -> Bool {
+        gate.status(of: capability) && grantedConsent(of: id).contains(capability)
     }
 
     // MARK: - 启停
@@ -138,35 +298,32 @@ public final class PluginRegistry {
     }
 
     public func activateAll() {
-        for type in types {
-            evaluate(id: type.manifest.id)
+        for registration in registrations {
+            evaluate(id: registration.manifest.id)
         }
     }
 
-    /// 按注册逆序关闭。
     public func deactivateAll() {
-        for type in types.reversed() {
-            let id = type.manifest.id
+        for registration in registrations.reversed() {
+            let id = registration.manifest.id
             deactivateInstance(id: id)
             states[id] = .disabled
         }
     }
 
     public func shutdown() {
-        for type in types.reversed() {
-            deactivateInstance(id: type.manifest.id)
+        for registration in registrations.reversed() {
+            deactivateInstance(id: registration.manifest.id)
         }
     }
 
-    /// 权限变化后的重判定。由 `didBecomeActive` 与权限页驱动，不重启进程。
     public func reconcile() {
         inputBus.resetAvailability()
-        for type in types {
-            evaluate(id: type.manifest.id)
+        for registration in registrations {
+            evaluate(id: registration.manifest.id)
         }
     }
 
-    /// 用户点「重试」：不做失败缓存，重新按能力判定（§6.1 迁移表）。
     public func retry(_ id: String) {
         states[id] = .disabled
         evaluate(id: id)
@@ -180,7 +337,8 @@ public final class PluginRegistry {
     // MARK: - 状态机
 
     private func evaluate(id: String) {
-        guard let type = types.first(where: { $0.manifest.id == id }) else { return }
+        guard let registration = registrations.first(where: { $0.manifest.id == id }) else { return }
+        let manifest = registration.manifest
 
         guard settings.enabledPluginIDs.contains(id) else {
             deactivateInstance(id: id)
@@ -188,7 +346,8 @@ public final class PluginRegistry {
             return
         }
 
-        let missing = type.manifest.requiredCapabilities.filter { !gate.status(of: $0) }
+        // 两层门控：系统授权 + 该插件的用户授权，缺一不可。
+        let missing = manifest.requiredCapabilities.filter { !effectiveStatus($0, for: id) }
         if !missing.isEmpty {
             deactivateInstance(id: id)
             states[id] = .missingCapabilities(missing)
@@ -200,20 +359,19 @@ public final class PluginRegistry {
             return
         }
 
-        activate(type: type, id: id)
+        activate(registration: registration, id: id)
     }
 
-    private func activate(type: any FeaturePlugin.Type, id: String) {
-        let context = context(for: type)
+    private func activate(registration: Registration, id: String) {
+        let context = context(for: registration)
 
         do {
-            let instance = type.init()
+            let instance = try registration.makeInstance()
             try instance.activate(context: context)
             instances[id] = instance
             states[id] = .active
             logStore.append(level: .info, pluginID: id, message: "插件已激活")
         } catch {
-            // 单个插件 activate 抛错只影响自己（§6.1）。
             cleanupAfterFailedActivation(id: id)
             states[id] = .failed(String(describing: error))
             logStore.append(level: .error, pluginID: id, message: "激活失败：\(error)")
@@ -229,22 +387,20 @@ public final class PluginRegistry {
 
     private func deactivateInstance(id: String) {
         guard let instance = instances.removeValue(forKey: id) else {
-            // 即使没有实例也要清理，防止上次 activate 中途失败留下的订阅。
             inputBus.cancelAll(owner: id)
             hotKeys.unregisterAll(owner: id)
             notifier.clearOwner(id)
             return
         }
         instance.deactivate()
-        // 强制清理：插件忘记 cancel 也不会泄漏（§6.3）。
         inputBus.cancelAll(owner: id)
         hotKeys.unregisterAll(owner: id)
         notifier.clearOwner(id)
         logStore.append(level: .info, pluginID: id, message: "插件已停用")
     }
 
-    private func context(for type: any FeaturePlugin.Type) -> PluginContextImpl {
-        let manifest = type.manifest
+    private func context(for registration: Registration) -> PluginContextImpl {
+        let manifest = registration.manifest
         if let cached = contexts[manifest.id] {
             return cached
         }
@@ -259,7 +415,11 @@ public final class PluginRegistry {
             store: store,
             inputBus: PluginInputBusFacade(core: inputBus, owner: manifest.id),
             hotKeys: PluginHotKeyFacade(arbitrator: hotKeys, owner: manifest.id),
-            permissions: PluginPermissionFacade(gate: gate, manifest: manifest),
+            permissions: PluginPermissionFacade(
+                gate: gate,
+                manifest: manifest,
+                granted: grantedConsent(of: manifest.id)
+            ),
             notifier: PluginNotifierFacade(impl: notifier, owner: manifest.id),
             logger: PluginLoggerImpl(pluginID: manifest.id, subsystem: AppIdentity.bundleIdentifier, store: logStore),
             runner: taskRunner
@@ -268,7 +428,6 @@ public final class PluginRegistry {
         return context
     }
 
-    /// 输入源创建失败（通常是缺权限）：订阅了该路的插件迁到 missingCapabilities。
     private func handleSourceUnavailable(_ source: InputSource) {
         let capability: Capability = source == .keyboard ? .inputMonitoring : .accessibility
         let subscribers: Set<String> = source == .keyboard

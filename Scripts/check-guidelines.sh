@@ -39,8 +39,9 @@ fi
 
 # 3. minHostVersion 与 MARKETING_VERSION 比对
 HOST_VERSION=$(grep -m1 'MARKETING_VERSION:' project.yml | sed 's/.*MARKETING_VERSION: *//' | tr -d '"')
-for file in $(grep -Rl 'minHostVersion' "$PLUGINS_DIR" --include='*.swift'); do
-  PLUGIN_VERSION=$(grep -o 'minHostVersion: "[0-9.]*"' "$file" | head -1 | sed 's/minHostVersion: "//; s/"//')
+for file in $(grep -Rl 'minHostVersion' "$PLUGINS_DIR" --include='*.swift' --include='*.json'); do
+  # 兼容两种写法：Swift 的 `minHostVersion: "1.0.0"` 与清单 JSON 的 `"minHostVersion": "1.0.0"`
+  PLUGIN_VERSION=$(grep -oE 'minHostVersion["]?[: ]+"?[0-9]+\.[0-9]+\.[0-9]+' "$file" | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
   if [ -z "$PLUGIN_VERSION" ]; then
     fail "$file 未声明 minHostVersion"
   elif [ "$PLUGIN_VERSION" != "$HOST_VERSION" ]; then
@@ -52,6 +53,7 @@ done
 
 # 4. 插件必须实现 makeSettingsView
 for file in $(grep -Rl 'FeaturePlugin' "$PLUGINS_DIR" --include='*.swift'); do
+  # 只看真正的内置插件实现；外部插件走 C ABI，没有 makeSettingsView 的 Swift 实现。
   if grep -q 'func makeSettingsView' "$file"; then
     ok "$(basename "$file") 实现了 makeSettingsView"
   else

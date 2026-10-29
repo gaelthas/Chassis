@@ -13,12 +13,15 @@ final class HostEnvironment {
     let settings = HostSettings()
     let logStore = LogStore()
     let gate = PermissionGate()
+    let consents = PluginConsentStore()
     let inputBus = InputBusCore()
     let hotKeys = HotKeyArbitrator()
     let taskRunner = TaskRunner()
     let notifier: NotifierImpl
     let registry: PluginRegistry
     let hostLogger: HostLogger
+    let installer: PluginInstaller
+    private let externalLoader: ExternalPluginLoader
 
     var selectedPane: SettingsPane = .general
     /// 开机自启注册失败的说明；为空表示无错误。
@@ -30,9 +33,12 @@ final class HostEnvironment {
     init() {
         notifier = NotifierImpl(logStore: logStore)
         hostLogger = HostLogger(subsystem: AppIdentity.bundleIdentifier, store: logStore)
+        installer = PluginInstaller(hostVersion: AppIdentity.version)
+        externalLoader = ExternalPluginLoader(hostVersion: AppIdentity.version, logStore: logStore)
         registry = PluginRegistry(
             settings: settings,
             gate: gate,
+            consents: consents,
             inputBus: inputBus,
             hotKeys: hotKeys,
             notifier: notifier,
@@ -49,6 +55,7 @@ final class HostEnvironment {
         bootstrapped = true
 
         registry.register(PluginCatalog.all)
+        refreshExternalPlugins()
 
         gate.openSystemSettings = { capability in
             SystemSettingsPane.open(capability)
@@ -65,6 +72,38 @@ final class HostEnvironment {
         hostLogger.info(
             "基座启动完成：\(registry.installedCount) 个插件，\(registry.enabledCount) 个已激活，活动输入源 \(inputBus.activeTapCount) 个"
         )
+    }
+
+    // MARK: - 外部插件
+
+    private var installPolicy: PluginInstallPolicy {
+        PluginInstallPolicy(
+            allowedTeamIDs: Set([AppIdentity.teamID].compactMap { $0 }),
+            allowThirdParty: settings.allowThirdPartyPlugins
+        )
+    }
+
+    /// 只读校验，不做任何安装副作用；用于安装确认页。
+    func inspectPlugin(at url: URL) throws -> StagedPlugin {
+        try installer.inspect(url: url, policy: installPolicy)
+    }
+
+    func install(_ staged: StagedPlugin) throws {
+        try installer.install(staged)
+        refreshExternalPlugins()
+        hostLogger.info("已安装外部插件：\(staged.manifest.id) v\(staged.manifest.version)")
+    }
+
+    func uninstallExternalPlugin(id: String) throws {
+        registry.unregister(id: id)
+        try installer.uninstall(id: id)
+        hostLogger.info("已卸载外部插件：\(id)")
+    }
+
+    /// 重新扫描安装目录：安装、升级、卸载后调用。
+    func refreshExternalPlugins() {
+        let records = installer.records
+        registry.registerExternal(externalLoader.registrations(from: records))
     }
 
     /// 从系统设置返回时重探测权限，驱动 missingCapabilities ↔ active 自动迁移。

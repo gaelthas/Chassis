@@ -81,6 +81,9 @@ targets:
       path: HostApp/Chassis.entitlements
       properties:
         com.apple.security.app-sandbox: false
+        # 外部插件是动态库：异 Team 签名时必须关闭 Library Validation。
+        # 运行时仍由 PluginInstaller 的 Team 白名单 + 「允许第三方插件」开关二次限制。
+        com.apple.security.cs.disable-library-validation: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.gaelthas.chassis

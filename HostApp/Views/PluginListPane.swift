@@ -1,46 +1,117 @@
+import AppKit
 import PluginAPI
 import PluginKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct PluginListPane: View {
     let environment: HostEnvironment
+
     @State private var selection: String?
+    @State private var consentTarget: ConsentTarget?
+    @State private var staged: StagedPlugin?
+    @State private var installError: String?
+
+    private struct ConsentTarget: Identifiable {
+        let manifest: PluginManifest
+        var id: String { manifest.id }
+    }
 
     var body: some View {
-        Group {
+        VStack(spacing: 0) {
+            header
+
             if environment.registry.installedCount == 0 {
-                emptyState
-            } else {
-                VStack(spacing: 0) {
-                    List(selection: $selection) {
-                        ForEach(environment.registry.entries) { entry in
-                            PluginRow(environment: environment, entry: entry)
-                                .tag(entry.id)
-                        }
-                    }
-                    .listStyle(.inset)
-
-                    Divider()
-
-                    detail
-                        .frame(minHeight: 210)
+                ContentUnavailableView {
+                    Label("plugins.empty.title", systemImage: "puzzlepiece.extension")
+                } description: {
+                    Text("plugins.empty.detail")
                 }
+                .frame(maxHeight: .infinity)
+            } else {
+                List(selection: $selection) {
+                    ForEach(environment.registry.entries) { entry in
+                        PluginRow(environment: environment, entry: entry) { manifest in
+                            consentTarget = ConsentTarget(manifest: manifest)
+                        }
+                        .tag(entry.id)
+                    }
+                }
+                .listStyle(.inset)
+
+                Divider()
+
+                detail
+                    .frame(minHeight: 210)
             }
+        }
+        .sheet(item: $consentTarget) { target in
+            PluginConsentSheet(
+                manifest: target.manifest,
+                onConfirm: { capabilities in
+                    guard environment.registry.grantConsent(target.manifest.id, capabilities: capabilities) else {
+                        consentTarget = nil
+                        return
+                    }
+                    environment.registry.setEnabled(target.manifest.id, enabled: true)
+                    consentTarget = nil
+                },
+                onCancel: { consentTarget = nil }
+            )
+        }
+        .sheet(item: $staged) { staged in
+            InstallPluginSheet(
+                staged: staged,
+                onInstall: {
+                    do {
+                        try environment.install(staged)
+                        self.staged = nil
+                    } catch {
+                        installError = error.localizedDescription
+                        self.staged = nil
+                    }
+                },
+                onCancel: { self.staged = nil }
+            )
+        }
+        .alert(
+            "install.error.title",
+            isPresented: Binding(get: { installError != nil }, set: { if !$0 { installError = nil } })
+        ) {
+            Button("common.ok") { installError = nil }
+        } message: {
+            Text(verbatim: installError ?? "")
         }
     }
 
-    private var emptyState: some View {
-        ContentUnavailableView {
-            Label("plugins.empty.title", systemImage: "puzzlepiece.extension")
-        } description: {
-            Text("plugins.empty.detail")
+    private var header: some View {
+        HStack(spacing: 10) {
+            Text("plugins.count \(environment.registry.installedCount)")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Button("plugins.install") { choosePackage() }
         }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
     }
 
     @ViewBuilder
     private var detail: some View {
         if let id = selection, let manifest = environment.registry.manifest(of: id) {
-            PluginDetailView(environment: environment, manifest: manifest)
+            PluginDetailView(
+                environment: environment,
+                manifest: manifest,
+                onRequestConsent: { consentTarget = ConsentTarget(manifest: manifest) },
+                onUninstall: {
+                    do {
+                        try environment.uninstallExternalPlugin(id: id)
+                        selection = nil
+                    } catch {
+                        installError = error.localizedDescription
+                    }
+                }
+            )
         } else {
             Text("plugins.select.hint")
                 .font(.callout)
@@ -48,11 +119,33 @@ struct PluginListPane: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
+
+    private func choosePackage() {
+        let panel = NSOpenPanel()
+        panel.title = String(localized: "plugins.install.panelTitle")
+        panel.allowsMultipleSelection = false
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = true
+        panel.allowedContentTypes = [
+            UTType(filenameExtension: "chassisplugin") ?? .package,
+            .zip,
+        ]
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        do {
+            staged = try environment.inspectPlugin(at: url)
+        } catch {
+            installError = error.localizedDescription
+        }
+    }
 }
+
+// MARK: - 列表行
 
 private struct PluginRow: View {
     let environment: HostEnvironment
     let entry: PluginRegistry.Entry
+    let onRequestConsent: (PluginManifest) -> Void
 
     var body: some View {
         HStack(spacing: 12) {
@@ -68,6 +161,13 @@ private struct PluginRow: View {
                     Text(verbatim: "v\(entry.manifest.version)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                    if entry.isExternal {
+                        Text("plugins.source.external")
+                            .font(.caption2)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 1)
+                            .background(Color.accentColor.opacity(0.16), in: Capsule())
+                    }
                 }
 
                 HStack(spacing: 6) {
@@ -86,7 +186,14 @@ private struct PluginRow: View {
                 "",
                 isOn: Binding(
                     get: { entry.isEnabled },
-                    set: { environment.registry.setEnabled(entry.id, enabled: $0) }
+                    set: { newValue in
+                        // 启用前必须完成「逐插件授权」；没有能力声明的插件直接启用。
+                        if newValue, environment.registry.needsConsentPrompt(entry.id) {
+                            onRequestConsent(entry.manifest)
+                        } else {
+                            environment.registry.setEnabled(entry.id, enabled: newValue)
+                        }
+                    }
                 )
             )
             .labelsHidden()
@@ -110,22 +217,26 @@ private struct CapabilityBadge: View {
     }
 }
 
-extension Capability {
-    var badgeKey: LocalizedStringKey {
-        switch self {
-        case .accessibility: "capability.badge.accessibility"
-        case .inputMonitoring: "capability.badge.inputMonitoring"
-        case .screenCapture: "capability.badge.screenCapture"
-        }
-    }
-}
+// MARK: - 详情
 
 private struct PluginDetailView: View {
     let environment: HostEnvironment
     let manifest: PluginManifest
+    let onRequestConsent: () -> Void
+    let onUninstall: () -> Void
+
+    @State private var confirmUninstall = false
 
     private var state: PluginRegistry.State {
         environment.registry.state(of: manifest.id)
+    }
+
+    private var declared: [Capability] {
+        environment.registry.declaredCapabilities(of: manifest.id).sorted { $0.rawValue < $1.rawValue }
+    }
+
+    private var granted: Set<Capability> {
+        environment.registry.grantedConsent(of: manifest.id)
     }
 
     var body: some View {
@@ -143,6 +254,12 @@ private struct PluginDetailView: View {
                     .font(.callout)
                     .foregroundStyle(.secondary)
 
+                if case let .external(info) = environment.registry.source(of: manifest.id) {
+                    externalInfo(info)
+                }
+
+                consentSection
+
                 content
 
                 Divider()
@@ -150,6 +267,11 @@ private struct PluginDetailView: View {
                 HStack {
                     Button("plugins.resetConfiguration") {
                         environment.registry.resetConfiguration(for: manifest.id)
+                    }
+                    if environment.registry.source(of: manifest.id)?.isExternal == true {
+                        Button("plugins.uninstall", role: .destructive) {
+                            confirmUninstall = true
+                        }
                     }
                     Spacer()
                     Text(verbatim: manifest.id)
@@ -161,13 +283,86 @@ private struct PluginDetailView: View {
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .confirmationDialog("plugins.uninstall.confirm", isPresented: $confirmUninstall, titleVisibility: .visible) {
+            Button("plugins.uninstall", role: .destructive) { onUninstall() }
+            Button("common.cancel", role: .cancel) {}
+        } message: {
+            Text("plugins.uninstall.message")
+        }
+    }
+
+    @ViewBuilder
+    private var consentSection: some View {
+        if !declared.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("plugins.consent.section")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                ForEach(declared, id: \.self) { capability in
+                    Toggle(isOn: binding(for: capability)) {
+                        HStack(spacing: 6) {
+                            Text(capability.titleKey)
+                            if manifest.requiredCapabilities.contains(capability) {
+                                Text("plugins.consent.required")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+
+                Text("plugins.consent.hint")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(10)
+            .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
+        }
+    }
+
+    private func binding(for capability: Capability) -> Binding<Bool> {
+        Binding(
+            get: { granted.contains(capability) },
+            set: { isOn in
+                if isOn {
+                    environment.registry.grantConsent(manifest.id, capabilities: granted.union([capability]))
+                } else {
+                    environment.registry.revokeConsent(manifest.id, capability: capability)
+                }
+            }
+        )
+    }
+
+    private func externalInfo(_ info: ExternalPluginInfo) -> some View {
+        Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 4) {
+            GridRow {
+                Text("install.version").foregroundStyle(.secondary)
+                Text(verbatim: info.version)
+            }
+            GridRow {
+                Text("install.signature").foregroundStyle(.secondary)
+                Text(verbatim: info.teamID ?? String(localized: "install.signature.development"))
+            }
+            GridRow {
+                Text("install.installedAt").foregroundStyle(.secondary)
+                Text(verbatim: info.installedAt.formatted(date: .abbreviated, time: .shortened))
+            }
+            GridRow {
+                Text("install.location").foregroundStyle(.secondary)
+                Text(verbatim: info.path)
+                    .font(.caption2)
+                    .textSelection(.enabled)
+            }
+        }
+        .font(.caption)
     }
 
     @ViewBuilder
     private var content: some View {
         switch state {
         case .active:
-            // 插件视图只在 active 时构建：半初始化时构建极易触发插件内部的隐式假设（§6.6）。
             if let view = environment.registry.makeSettingsView(for: manifest.id) {
                 view
             } else {
@@ -180,10 +375,20 @@ private struct PluginDetailView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("plugins.missing.explain")
                     .font(.callout)
+
                 HStack(spacing: 8) {
+                    if !environment.registry.missingConsent(of: manifest.id).isEmpty {
+                        Button("plugins.consent.grant") { onRequestConsent() }
+                    }
                     ForEach(Array(missing).sorted(by: { $0.rawValue < $1.rawValue }), id: \.self) { capability in
-                        Button(capability.titleKey) {
-                            environment.gate.request(capability)
+                        if environment.gate.status(of: capability) {
+                            Button(capability.titleKey) {
+                                environment.registry.grantConsent(manifest.id, capabilities: granted.union([capability]))
+                            }
+                        } else {
+                            Button(capability.titleKey) {
+                                environment.gate.request(capability)
+                            }
                         }
                     }
                     Button("permissions.openSettings") {
@@ -198,7 +403,7 @@ private struct PluginDetailView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("plugins.failed.explain")
                     .font(.callout)
-                Text(message)
+                Text(verbatim: message)
                     .font(.caption.monospaced())
                     .foregroundStyle(.red)
                     .textSelection(.enabled)
@@ -212,5 +417,12 @@ private struct PluginDetailView: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
         }
+    }
+}
+
+private extension PluginSource {
+    var isExternal: Bool {
+        if case .external = self { return true }
+        return false
     }
 }

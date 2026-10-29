@@ -20,6 +20,17 @@ extension Capability {
     }
 }
 
+extension Capability {
+    /// 插件行里的短标签，与权限页的完整标题区分。
+    var badgeKey: LocalizedStringKey {
+        switch self {
+        case .accessibility: "capability.badge.accessibility"
+        case .inputMonitoring: "capability.badge.inputMonitoring"
+        case .screenCapture: "capability.badge.screenCapture"
+        }
+    }
+}
+
 extension PluginRegistry.State {
     var titleKey: LocalizedStringKey {
         switch self {

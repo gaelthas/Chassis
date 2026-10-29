@@ -59,6 +59,46 @@
 "permissions.hint.restricted" = "该权限被系统策略限制，申请不会生效。";
 "permissions.staleNote" = "若系统设置中已开启但仍显示未授权：系统按「代码签名」识别应用。同一应用若存在多份拷贝（例如 .build 下的构建产物与 /Applications 里的副本），或开发期用 ad-hoc 签名重新构建过，系统会把它们当成不同应用，你授权的可能是另一份。处理办法：移除列表里的旧条目后重新添加当前应用，或重启应用。输入监控在部分系统版本上需要重启应用才生效。";
 
+/* 插件安装与逐插件授权 */
+"plugins.count" = "%lld 个插件";
+"plugins.install" = "安装插件…";
+"plugins.install.panelTitle" = "选择插件包";
+"plugins.source.external" = "第三方";
+"plugins.uninstall" = "卸载";
+"plugins.uninstall.confirm" = "卸载这个插件？";
+"plugins.uninstall.message" = "插件会被停用并从列表移除，文件移到废纸篓；该插件的配置与授权记录会一并清除。";
+"plugins.consent.section" = "已授权能力";
+"plugins.consent.required" = "必需";
+"plugins.consent.hint" = "这是基座对该插件的授权，不是系统授权。撤销必需能力会立即停用插件。";
+"plugins.consent.grant" = "授权此插件";
+
+"install.title" = "安装插件";
+"install.version" = "版本";
+"install.identifier" = "标识";
+"install.publisher" = "发行方";
+"install.signature" = "签名";
+"install.signature.development" = "开发签名（ad-hoc）";
+"install.capabilities" = "该插件申请的能力";
+"install.capabilities.note" = "安装不会授予这些能力；启用时还需你逐项确认，且系统授权由基座统一持有。";
+"install.installedAt" = "安装时间";
+"install.location" = "安装位置";
+"install.warning" = "外部插件与基座同进程运行，可获得与基座相同的系统权限。基座只能限制它通过插件 API 使用事件、快捷键与通知。";
+"install.confirm" = "安装";
+"install.error.title" = "安装失败";
+
+"consent.title" = "允许「%@」使用这些能力？";
+"consent.subtitle" = "系统授权已由基座持有，不会再弹出系统对话框。";
+"consent.requiredSection" = "必需能力";
+"consent.optionalSection" = "可选能力";
+"consent.warning" = "该插件与基座同进程运行，可获得与基座相同的系统权限；基座只能限制它通过插件 API 的行为。";
+"consent.confirm" = "允许并启用";
+
+"general.section.plugins" = "插件";
+"general.allowThirdParty" = "允许安装第三方插件";
+"general.allowThirdParty.caption" = "关闭时只接受与基座同一开发者签名的插件。打开后会放宽代码签名校验（Library Validation），安全性下降。";
+
+"common.ok" = "好";
+
 /* 插件 */
 "plugins.empty.title" = "尚未安装任何插件";
 "plugins.empty.detail" = "基座本身不包含任何业务功能。插件以静态模块接入后，会出现在这里。";

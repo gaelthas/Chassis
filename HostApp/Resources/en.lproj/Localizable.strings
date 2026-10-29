@@ -59,6 +59,46 @@
 "permissions.hint.restricted" = "This permission is restricted by system policy; requesting it has no effect.";
 "permissions.staleNote" = "If System Settings shows it enabled but this page disagrees: macOS identifies apps by code signature. When several copies exist (e.g. a build in .build and the one in /Applications), or when an ad-hoc signed build is rebuilt, macOS treats them as different apps and the grant may belong to another copy. Remove the stale entry and add the current app again, or restart the app. Input Monitoring may require a restart on some macOS versions.";
 
+/* Plugin install & per-plugin consent */
+"plugins.count" = "%lld plugin(s)";
+"plugins.install" = "Install Plugin…";
+"plugins.install.panelTitle" = "Choose a plugin package";
+"plugins.source.external" = "Third-party";
+"plugins.uninstall" = "Uninstall";
+"plugins.uninstall.confirm" = "Uninstall this plugin?";
+"plugins.uninstall.message" = "The plugin is disabled and removed from the list; its file goes to the Trash and its configuration and consent are cleared.";
+"plugins.consent.section" = "Granted capabilities";
+"plugins.consent.required" = "required";
+"plugins.consent.hint" = "This is the host's grant, not a system permission. Revoking a required capability deactivates the plugin immediately.";
+"plugins.consent.grant" = "Grant for this plugin";
+
+"install.title" = "Install Plugin";
+"install.version" = "Version";
+"install.identifier" = "Identifier";
+"install.publisher" = "Publisher";
+"install.signature" = "Signature";
+"install.signature.development" = "Development (ad-hoc)";
+"install.capabilities" = "Capabilities requested";
+"install.capabilities.note" = "Installing grants nothing. You confirm each capability when enabling, and the system permission stays with the host.";
+"install.installedAt" = "Installed";
+"install.location" = "Location";
+"install.warning" = "Third-party plugins run in the host process and can obtain the same system permissions as the host. The host can only restrict what they do through the plugin API (events, hot keys, notifications).";
+"install.confirm" = "Install";
+"install.error.title" = "Installation failed";
+
+"consent.title" = "Allow “%@” to use these capabilities?";
+"consent.subtitle" = "The system permission is already held by the host; no system dialog will appear again.";
+"consent.requiredSection" = "Required";
+"consent.optionalSection" = "Optional";
+"consent.warning" = "This plugin runs in the host process and can obtain the same system permissions; the host can only restrict its behaviour through the plugin API.";
+"consent.confirm" = "Allow and Enable";
+
+"general.section.plugins" = "Plugins";
+"general.allowThirdParty" = "Allow third-party plugins";
+"general.allowThirdParty.caption" = "When off, only plugins signed by the same developer as the host are accepted. Enabling relaxes code-signing validation (Library Validation) and lowers the security baseline.";
+
+"common.ok" = "OK";
+
 /* Plugins */
 "plugins.empty.title" = "No plugins installed";
 "plugins.empty.detail" = "The host contains no business features. Plugins appear here once they are linked as static modules.";

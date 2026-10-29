@@ -10,6 +10,7 @@ public final class HostSettings {
         static let enabledPlugins = "host.enabledPlugins"
         static let showMenuBarIcon = "host.showMenuBarIcon"
         static let showSettingsOnLaunch = "host.showSettingsOnLaunch"
+        static let allowThirdPartyPlugins = "host.allowThirdPartyPlugins"
     }
 
     @ObservationIgnored private let defaults: UserDefaults
@@ -27,6 +28,12 @@ public final class HostSettings {
         didSet { defaults.set(showSettingsOnLaunch, forKey: Key.showSettingsOnLaunch) }
     }
 
+    /// 允许安装/加载非同一 Team 签名的插件。默认关闭：
+    /// 打开后基座必须关闭 Library Validation，安全基线下降（见外部插件设计文档 §4.4）。
+    public var allowThirdPartyPlugins: Bool {
+        didSet { defaults.set(allowThirdPartyPlugins, forKey: Key.allowThirdPartyPlugins) }
+    }
+
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         let stored = defaults.array(forKey: Key.enabledPlugins) as? [String] ?? []
@@ -34,5 +41,6 @@ public final class HostSettings {
         // 默认显示菜单栏图标；`object(forKey:)` 为 nil 说明从未写过，取默认值而不是 false。
         showMenuBarIcon = defaults.object(forKey: Key.showMenuBarIcon) as? Bool ?? true
         showSettingsOnLaunch = defaults.object(forKey: Key.showSettingsOnLaunch) as? Bool ?? true
+        allowThirdPartyPlugins = defaults.object(forKey: Key.allowThirdPartyPlugins) as? Bool ?? false
     }
 }

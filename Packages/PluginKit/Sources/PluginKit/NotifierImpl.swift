@@ -22,7 +22,12 @@ public final class NotifierImpl: NSObject {
     @ObservationIgnored private var ownersByIdentifier: [String: String] = [:]
 
     @ObservationIgnored private let logStore: LogStore
-    @ObservationIgnored private let center = UNUserNotificationCenter.current()
+    /// 非 .app 环境（如开发期 CLI 工具）没有 bundleProxy，`UNUserNotificationCenter.current()`
+    /// 会直接抛 NSException；这里按需创建并允许为 nil。
+    @ObservationIgnored private lazy var center: UNUserNotificationCenter? = {
+        guard Bundle.main.bundleURL.pathExtension == "app" else { return nil }
+        return UNUserNotificationCenter.current()
+    }()
 
     /// 点击历史通知时判断插件是否仍 active；非 active 时忽略点击（§6.8）。
     @ObservationIgnored public var isPluginActive: ((String) -> Bool)?
@@ -41,7 +46,7 @@ public final class NotifierImpl: NSObject {
     public init(logStore: LogStore) {
         self.logStore = logStore
         super.init()
-        center.delegate = self
+        center?.delegate = self
         Task { [weak self] in
             await self?.refreshAuthorization()
         }
@@ -54,6 +59,10 @@ public final class NotifierImpl: NSObject {
             return authorization == .authorized
         }
         hasRequestedAuthorization = true
+        guard let center else {
+            authorization = .notDetermined
+            return false
+        }
         do {
             let granted = try await center.requestAuthorization(options: [.alert, .sound])
             authorization = granted ? .authorized : .denied
@@ -66,6 +75,10 @@ public final class NotifierImpl: NSObject {
     }
 
     public func refreshAuthorization() async {
+        guard let center else {
+            authorization = .notDetermined
+            return
+        }
         let settings = await center.notificationSettings()
         switch settings.authorizationStatus {
         case .authorized, .provisional, .ephemeral:
@@ -131,6 +144,11 @@ public final class NotifierImpl: NSObject {
         content.body = notification.body
         if notification.priority == .normal {
             content.sound = .default
+        }
+
+        guard let center else {
+            logStore.append(level: .debug, pluginID: owner, message: "通知被丢弃：无应用 bundle")
+            return
         }
 
         let request = UNNotificationRequest(identifier: identifier, content: content, trigger: nil)

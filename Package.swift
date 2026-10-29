@@ -23,6 +23,7 @@ let package = Package(
     dependencies: [
         .package(path: "Packages/PluginAPI"),
         .package(path: "Packages/PluginSupport"),
+        .package(path: "Packages/PluginABI"),
     ],
     targets: [
         .target(
@@ -30,8 +31,15 @@ let package = Package(
             dependencies: [
                 .product(name: "PluginAPI", package: "PluginAPI"),
                 .product(name: "AtomicsShim", package: "PluginAPI"),
+                .product(name: "PluginABI", package: "PluginABI"),
             ],
             path: "Packages/PluginKit/Sources/PluginKit"
+        ),
+        // 开发期工具：校验并实际加载一个外部插件包（不随应用分发）
+        .executableTarget(
+            name: "PluginCheck",
+            dependencies: ["PluginKit"],
+            path: "Tools/PluginCheck"
         ),
         .target(
             name: "Harness",

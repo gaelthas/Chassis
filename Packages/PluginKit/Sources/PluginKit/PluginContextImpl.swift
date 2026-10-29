@@ -111,14 +111,18 @@ final class PluginHotKeyFacade: HotKeyService {
 final class PluginPermissionFacade: PermissionService {
     private let gate: PermissionGate
     private let declared: Set<Capability>
+    /// 激活时冻结的插件级授权：撤销后基座会先 deactivate，不会出现「用到一半被撤」。
+    private let granted: Set<Capability>
 
-    init(gate: PermissionGate, manifest: PluginManifest) {
+    init(gate: PermissionGate, manifest: PluginManifest, granted: Set<Capability>) {
         self.gate = gate
         self.declared = manifest.requiredCapabilities.union(manifest.optionalCapabilities)
+        self.granted = granted
     }
 
+    /// 系统授权 && 该插件被授权：插件永远看不到「基座有权限但没给我」的假阳性。
     func status(of capability: Capability) -> Bool {
-        gate.status(of: capability)
+        gate.status(of: capability) && granted.contains(capability)
     }
 
     func isRestricted(_ capability: Capability) -> Bool {
@@ -130,6 +134,8 @@ final class PluginPermissionFacade: PermissionService {
     }
 
     func request(_ capability: Capability) {
+        // 未获插件授权的能力不允许借插件之手弹系统框。
+        guard declared.contains(capability), granted.contains(capability) else { return }
         gate.request(capability)
     }
 }

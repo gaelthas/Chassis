@@ -75,6 +75,32 @@ swift build --package-path Chassis-Plugins     # 插件仓库（独立构建）
 
 插件全部默认关闭：未启用时不申请权限、不订阅事件。
 
+## 外部插件（安装 / 授权 / 加载）
+
+插件可以打包成 `.chassisplugin` 由用户导入，**与基座同进程运行**，因此不需要再次通过系统授权；基座对每个插件单独收口。
+
+```
+插件页「安装插件…」→ 校验清单与签名 → 确认页（能力清单 + 同进程警告）
+   → 复制到 ~/Library/Application Support/com.gaelthas.chassis/Plugins/
+   → 列表出现，默认未启用（此时从未 dlopen）
+   → 启用前弹出逐能力授权 → 允许后加载动态库并 activate
+   → 插件详情页的齿轮/作者区即插件自己的设置页
+```
+
+- 默认只信任与基座同 Team 签名的插件；`通用 → 允许安装第三方插件` 打开后才接受异 Team / ad-hoc（对应 `disable-library-validation`，安全基线下降）。
+- 逐插件授权独立于 TCC：插件看到的 `permissions.status` = 系统已授权 **且** 用户给过该插件授权；撤销必需能力会立即停用插件。
+- 插件升级若新增能力声明，旧授权不继承，必须重新确认。
+
+相关实现：`Packages/PluginABI`（纯 C ABI）、`PluginConsentStore` / `PluginInstaller` / `ExternalPluginLoader`（PluginKit）、`PluginConsentSheet` / `InstallPluginSheet`（HostApp）。
+
+```bash
+# 构建示例外部插件（ad-hoc 签名，仅本地测试）
+./Chassis-Plugins/Examples/build-hello.sh
+
+# 全链路校验：清单 → 安装 → 注册 → 授权 → 启用 → 设置页 → 停用 → 卸载
+swift run PluginCheck Chassis-Plugins/Examples/dist/HelloPlugin.chassisplugin
+```
+
 ## 权限与授权
 
 启动路径**不申请任何权限**，也不创建任何 Event Tap。权限只在用户点击「授权」时请求：

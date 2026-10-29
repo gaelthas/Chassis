@@ -30,6 +30,14 @@ struct GeneralPane: View {
                 Toggle("general.showSettingsOnLaunch", isOn: showSettingsOnLaunchBinding)
             }
 
+            Section("general.section.plugins") {
+                Toggle("general.allowThirdParty", isOn: allowThirdPartyBinding)
+                Text("general.allowThirdParty.caption")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
             Section("general.section.quit") {
                 Button("general.quit", role: .destructive) {
                     NSApp.terminate(nil)
@@ -84,6 +92,13 @@ struct GeneralPane: View {
                     showHideMenuBarConfirmation = true
                 }
             }
+        )
+    }
+
+    private var allowThirdPartyBinding: Binding<Bool> {
+        Binding(
+            get: { environment.settings.allowThirdPartyPlugins },
+            set: { environment.settings.allowThirdPartyPlugins = $0 }
         )
     }
 
