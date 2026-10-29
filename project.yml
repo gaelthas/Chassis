@@ -77,6 +77,9 @@ targets:
         NSHumanReadableCopyright: "© 2026 gaelthas"
         ChassisSummary: "插件化 macOS 工具基座"
         ChassisUpdateURL: "https://github.com/gaelthas/chassis/releases"
+        # 插件市场：打包时填入线上索引地址与签名公钥；留空则市场页只显示配置说明
+        ChassisMarketplaceURL: ""
+        ChassisMarketplacePublicKey: ""
     entitlements:
       path: HostApp/Chassis.entitlements
       properties:

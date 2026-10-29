@@ -21,6 +21,7 @@ final class HostEnvironment {
     let registry: PluginRegistry
     let hostLogger: HostLogger
     let installer: PluginInstaller
+    let marketplace: PluginUpdateCenter
     private let externalLoader: ExternalPluginLoader
 
     var selectedPane: SettingsPane = .general
@@ -35,7 +36,7 @@ final class HostEnvironment {
         hostLogger = HostLogger(subsystem: AppIdentity.bundleIdentifier, store: logStore)
         installer = PluginInstaller(hostVersion: AppIdentity.version)
         externalLoader = ExternalPluginLoader(hostVersion: AppIdentity.version, logStore: logStore)
-        registry = PluginRegistry(
+        let registry = PluginRegistry(
             settings: settings,
             gate: gate,
             consents: consents,
@@ -46,6 +47,16 @@ final class HostEnvironment {
             logStore: logStore,
             hostVersion: AppIdentity.version
         )
+        self.registry = registry
+        marketplace = PluginUpdateCenter(
+            installer: installer,
+            settings: settings,
+            hostVersion: AppIdentity.version,
+            logStore: logStore
+        )
+        marketplace.onInstalled = { [weak self] in
+            self?.refreshExternalPlugins()
+        }
     }
 
     /// 启动时序（§8）：读配置 → 取 manifest → 渲染 UI → 激活已启用插件。
@@ -68,6 +79,8 @@ final class HostEnvironment {
         }
 
         registry.activateAll()
+        // 市场检查放在插件激活之后：避免与首屏、权限探测抢时序。
+        marketplace.startAutomaticUpdates()
         // 空载承诺的可观测证据：插件全关时 tap 数必须为 0（验收 A1）。
         hostLogger.info(
             "基座启动完成：\(registry.installedCount) 个插件，\(registry.enabledCount) 个已激活，活动输入源 \(inputBus.activeTapCount) 个"

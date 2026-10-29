@@ -41,6 +41,11 @@ let package = Package(
             dependencies: ["PluginKit"],
             path: "Tools/PluginCheck"
         ),
+        .executableTarget(
+            name: "MarketCheck",
+            dependencies: ["PluginKit"],
+            path: "Tools/MarketCheck"
+        ),
         .target(
             name: "Harness",
             dependencies: [

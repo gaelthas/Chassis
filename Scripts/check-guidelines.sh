@@ -38,9 +38,12 @@ else
 fi
 
 # 3. minHostVersion 与 MARKETING_VERSION 比对
+#    只看真正的插件实现（FeaturePlugin）与外部插件清单（manifest.json），
+#    避免把市场上的工具脚本（里面也有同名字段）误判成插件。
 HOST_VERSION=$(grep -m1 'MARKETING_VERSION:' project.yml | sed 's/.*MARKETING_VERSION: *//' | tr -d '"')
-for file in $(grep -Rl 'minHostVersion' "$PLUGINS_DIR" --include='*.swift' --include='*.json'); do
-  # 兼容两种写法：Swift 的 `minHostVersion: "1.0.0"` 与清单 JSON 的 `"minHostVersion": "1.0.0"`
+MANIFEST_FILES=$(find "$PLUGINS_DIR" -name 'manifest.json' -not -path '*/.build/*')
+for file in $(grep -Rl 'FeaturePlugin' "$PLUGINS_DIR" --include='*.swift' | grep -v '/Market/') $MANIFEST_FILES; do
+  # 兼容 Swift 的 `minHostVersion: "1.0.0"` 与 JSON 的 `"minHostVersion": "1.0.0"`
   PLUGIN_VERSION=$(grep -oE 'minHostVersion["]?[: ]+"?[0-9]+\.[0-9]+\.[0-9]+' "$file" | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
   if [ -z "$PLUGIN_VERSION" ]; then
     fail "$file 未声明 minHostVersion"

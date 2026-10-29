@@ -69,6 +69,18 @@ public final class PluginInstaller {
         records.first { $0.id == id }
     }
 
+    /// 已安装插件声明的能力；用于判断一次更新是否改变了授权范围。
+    public func installedCapabilities(id: String) -> (required: Set<String>, optional: Set<String>)? {
+        guard let record = record(for: id) else { return nil }
+        let bundleURL = URL(fileURLWithPath: record.path)
+        guard let manifestURL = Self.manifestURL(in: bundleURL),
+              let data = try? Data(contentsOf: manifestURL),
+              let package = try? JSONDecoder().decode(PluginPackageManifest.self, from: data) else {
+            return nil
+        }
+        return (Set(package.requiredCapabilities), Set(package.optionalCapabilities))
+    }
+
     // MARK: - 校验
 
     public func inspect(url: URL, policy: PluginInstallPolicy) throws -> StagedPlugin {

@@ -99,6 +99,32 @@
 
 "common.ok" = "OK";
 
+/* Plugin marketplace */
+"pane.marketplace" = "Marketplace";
+
+"market.title" = "Plugin Marketplace";
+"market.check" = "Check for Updates";
+"market.checking" = "Checking…";
+"market.neverChecked" = "Not checked yet";
+"market.lastChecked" = "Last checked";
+"market.updatesAvailable" = "%lld update(s)";
+"market.installableCount" = "%lld installable";
+"market.autoCheck" = "Check for updates automatically";
+"market.autoInstall" = "Install updates automatically";
+"market.autoInstall.note" = "Automatic installs cover routine upgrades only. If a new version changes its declared capabilities, the plugin pauses until you confirm the grant again.";
+"market.install" = "Install";
+"market.update" = "Update";
+"market.fromVersion" = "installed %@";
+"market.installed" = "Installed";
+"market.incompatible" = "Requires host %@";
+"market.retry" = "Retry";
+"market.empty.title" = "Nothing available";
+"market.empty.detail" = "The index is empty, or none of its plugins are compatible with this host.";
+"market.notConfigured.title" = "Marketplace is not configured";
+"market.notConfigured.detail" = "Set ChassisMarketplaceURL and ChassisMarketplacePublicKey in Info.plist when packaging. For local development you can also run: defaults write com.gaelthas.chassis host.marketplaceURL <index-url> and override the key with host.marketplacePublicKey. DEBUG builds accept unsigned indexes from local sources (file:// or localhost).";
+"market.footer" = "The index is signature-verified and packages are checked by sha256 and code signature. The marketplace only serves metadata; installation and per-plugin consent stay with the host.";
+"market.thirdPartyHint" = "Enable “Allow third-party plugins” in General before installing third-party plugins.";
+
 /* Plugins */
 "plugins.empty.title" = "No plugins installed";
 "plugins.empty.detail" = "The host contains no business features. Plugins appear here once they are linked as static modules.";

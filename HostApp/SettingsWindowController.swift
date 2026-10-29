@@ -5,6 +5,7 @@ import SwiftUI
 enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
     case general
     case plugins
+    case marketplace
     case permissions
     case about
 
@@ -14,6 +15,7 @@ enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .general: "pane.general"
         case .plugins: "pane.plugins"
+        case .marketplace: "pane.marketplace"
         case .permissions: "pane.permissions"
         case .about: "pane.about"
         }
@@ -23,6 +25,7 @@ enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .general: "gearshape"
         case .plugins: "puzzlepiece.extension"
+        case .marketplace: "bag"
         case .permissions: "lock.shield"
         case .about: "info.circle"
         }

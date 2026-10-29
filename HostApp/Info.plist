@@ -20,6 +20,10 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>ChassisMarketplacePublicKey</key>
+	<string></string>
+	<key>ChassisMarketplaceURL</key>
+	<string></string>
 	<key>ChassisSummary</key>
 	<string>插件化 macOS 工具基座</string>
 	<key>ChassisUpdateURL</key>

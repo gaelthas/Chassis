@@ -101,6 +101,35 @@ swift build --package-path Chassis-Plugins     # 插件仓库（独立构建）
 swift run PluginCheck Chassis-Plugins/Examples/dist/HelloPlugin.chassisplugin
 ```
 
+## 插件市场与自动更新
+
+市场只提供元数据（索引 + 包地址），安装仍走外部插件的完整校验与逐插件授权。
+
+```
+设置 → 插件市场
+  ├─ 索引经 Ed25519 签名校验（公钥来自 Info.plist / UserDefaults）
+  ├─ 包下载后校验 sha256，再交给 PluginInstaller 校验代码签名与版本
+  ├─ 自动检查：启动后 5s 首次，之后每 6 小时（默认开启）
+  └─ 自动安装：默认关闭；更新若改变能力声明，插件会暂停并要求重新授权
+```
+
+本地联调（DEBUG 构建允许本地未签名索引）：
+
+```bash
+# 1) 构建示例插件并生成/签名索引
+./Chassis-Plugins/Examples/build-hello.sh
+bash Chassis-Plugins/Market/build-market.sh
+
+# 2) 让基座指向本地索引
+defaults write com.gaelthas.chassis host.marketplaceURL \
+  "file://$PWD/Chassis-Plugins/Market/index.json"
+
+# 3) 全链路校验：索引 → 下载 → 校验 → 安装 → 启用 → 升级检测 → 卸载
+swift run MarketCheck "file://$PWD/Chassis-Plugins/Market/index.json"
+```
+
+签名密钥与发布流程见 `docs/Marketplace-Design.md`。
+
 ## 权限与授权
 
 启动路径**不申请任何权限**，也不创建任何 Event Tap。权限只在用户点击「授权」时请求：

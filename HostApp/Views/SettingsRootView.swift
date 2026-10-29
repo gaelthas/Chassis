@@ -36,6 +36,8 @@ struct SettingsRootView: View {
             GeneralPane(environment: environment)
         case .plugins:
             PluginListPane(environment: environment)
+        case .marketplace:
+            MarketplacePane(environment: environment)
         case .permissions:
             PermissionPane(environment: environment)
         case .about:

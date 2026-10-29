@@ -99,6 +99,32 @@
 
 "common.ok" = "好";
 
+/* 插件市场 */
+"pane.marketplace" = "插件市场";
+
+"market.title" = "插件市场";
+"market.check" = "检查更新";
+"market.checking" = "正在检查…";
+"market.neverChecked" = "尚未检查更新";
+"market.lastChecked" = "上次检查";
+"market.updatesAvailable" = "%lld 个可更新";
+"market.installableCount" = "%lld 个可安装";
+"market.autoCheck" = "自动检查更新";
+"market.autoInstall" = "自动安装更新";
+"market.autoInstall.note" = "自动安装只处理常规升级；若新版本改变了能力声明，插件会暂停并要求重新确认授权。";
+"market.install" = "安装";
+"market.update" = "更新";
+"market.fromVersion" = "当前 %@";
+"market.installed" = "已安装";
+"market.incompatible" = "需要基座 %@";
+"market.retry" = "重试";
+"market.empty.title" = "市场暂无可用插件";
+"market.empty.detail" = "索引为空，或其中的插件与当前基座不兼容。";
+"market.notConfigured.title" = "尚未配置插件市场";
+"market.notConfigured.detail" = "打包时在 Info.plist 写入 ChassisMarketplaceURL 与 ChassisMarketplacePublicKey。开发期也可以执行：defaults write com.gaelthas.chassis host.marketplaceURL <索引地址>，签名公钥用 host.marketplacePublicKey 覆盖；DEBUG 构建允许本地（file:// 或 localhost）的未签名索引。";
+"market.footer" = "索引经过签名校验，包经过 sha256 与代码签名校验；市场只提供元数据，安装与逐插件授权仍是基座的职责。";
+"market.thirdPartyHint" = "安装第三方插件前，请先在「通用」中开启「允许安装第三方插件」。";
+
 /* 插件 */
 "plugins.empty.title" = "尚未安装任何插件";
 "plugins.empty.detail" = "基座本身不包含任何业务功能。插件以静态模块接入后，会出现在这里。";

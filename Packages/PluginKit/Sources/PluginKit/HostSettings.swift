@@ -11,6 +11,10 @@ public final class HostSettings {
         static let showMenuBarIcon = "host.showMenuBarIcon"
         static let showSettingsOnLaunch = "host.showSettingsOnLaunch"
         static let allowThirdPartyPlugins = "host.allowThirdPartyPlugins"
+        static let marketplaceURL = "host.marketplaceURL"
+        static let marketplacePublicKey = "host.marketplacePublicKey"
+        static let autoCheckPluginUpdates = "host.autoCheckPluginUpdates"
+        static let autoInstallPluginUpdates = "host.autoInstallPluginUpdates"
     }
 
     @ObservationIgnored private let defaults: UserDefaults
@@ -34,6 +38,26 @@ public final class HostSettings {
         didSet { defaults.set(allowThirdPartyPlugins, forKey: Key.allowThirdPartyPlugins) }
     }
 
+    /// 插件市场索引地址。默认取 Info.plist 的 `ChassisMarketplaceURL`（打包时注入），
+    /// 用户或开发期可用 defaults 覆盖，便于自建/本地市场。
+    public var marketplaceURL: String {
+        didSet { defaults.set(marketplaceURL, forKey: Key.marketplaceURL) }
+    }
+
+    /// 市场索引签名公钥（base64 Ed25519）。为空时只有 DEBUG 的本地来源可用。
+    public var marketplacePublicKey: String {
+        didSet { defaults.set(marketplacePublicKey, forKey: Key.marketplacePublicKey) }
+    }
+
+    public var autoCheckPluginUpdates: Bool {
+        didSet { defaults.set(autoCheckPluginUpdates, forKey: Key.autoCheckPluginUpdates) }
+    }
+
+    /// 自动安装更新。默认关闭：更新可能改变能力声明，导致插件需要重新授权。
+    public var autoInstallPluginUpdates: Bool {
+        didSet { defaults.set(autoInstallPluginUpdates, forKey: Key.autoInstallPluginUpdates) }
+    }
+
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         let stored = defaults.array(forKey: Key.enabledPlugins) as? [String] ?? []
@@ -42,5 +66,12 @@ public final class HostSettings {
         showMenuBarIcon = defaults.object(forKey: Key.showMenuBarIcon) as? Bool ?? true
         showSettingsOnLaunch = defaults.object(forKey: Key.showSettingsOnLaunch) as? Bool ?? true
         allowThirdPartyPlugins = defaults.object(forKey: Key.allowThirdPartyPlugins) as? Bool ?? false
+
+        let bundledURL = Bundle.main.object(forInfoDictionaryKey: "ChassisMarketplaceURL") as? String ?? ""
+        marketplaceURL = defaults.string(forKey: Key.marketplaceURL) ?? bundledURL
+        let bundledKey = Bundle.main.object(forInfoDictionaryKey: "ChassisMarketplacePublicKey") as? String ?? ""
+        marketplacePublicKey = defaults.string(forKey: Key.marketplacePublicKey) ?? bundledKey
+        autoCheckPluginUpdates = defaults.object(forKey: Key.autoCheckPluginUpdates) as? Bool ?? true
+        autoInstallPluginUpdates = defaults.object(forKey: Key.autoInstallPluginUpdates) as? Bool ?? false
     }
 }
