@@ -3,8 +3,25 @@
 插件化 macOS 工具基座。基座自身**不含任何业务功能**，只提供应用壳层、设置界面与插件运行机制；所有功能以静态模块形式接入。
 
 - 设计依据：`docs/Host-Architecture-Design.md`（v2.2）
-- 插件规范：`docs/Plugin-Development-Guide.md`（v1.1）
-- 当前交付：**M0 纯基座 + M1 探针插件**
+- 插件规范：`Chassis-Plugins/docs/Plugin-Development-Guide.md`（v1.1，在插件仓库内）
+- 当前交付：**M0 纯基座 + M1 探针插件**（插件源码在独立仓库 `Chassis-Plugins/`）
+
+## 仓库组成
+
+两个独立 git 仓库，检查在同一目录下（插件目录已被基座仓库忽略）：
+
+```
+Chassis/                  ← 基座仓库（本仓库）
+└── Chassis-Plugins/      ← 插件仓库（独立 git，需单独 clone）
+```
+
+首次拉取基座仓库后，需要把插件仓库放到 `Chassis-Plugins/`：
+
+```bash
+git clone <插件仓库地址> Chassis-Plugins
+```
+
+`Package.swift` 用路径把 `Chassis-Plugins/Packages/Harness` 编进同一个二进制——静态链接模型下「注册表即链接清单」；目录缺失时构建会失败，`bootstrap.sh` 会提示。
 
 ## 构建
 
@@ -30,13 +47,20 @@ xcodebuild -project Chassis.xcodeproj -scheme Chassis -configuration Debug \
 
 | 路径 | 内容 |
 |---|---|
-| `Packages/PluginAPI` | 纯接口层（唯一例外：`AtomicFlag` + C 原子垫片） |
-| `Packages/AtomicsShim` | 40 行 C 原子实现，供 tap 线程无锁读写 |
-| `Packages/PluginKit` | 基座机制：InputBus / PermissionGate / Registry / HotKey / Notifier / Store / TaskRunner |
-| `Packages/PluginSupport` | 可选共享工具（纯函数）+ `HotKeyRecorder` 控件 |
-| `Packages/Plugins/Harness` | 探针插件，**仅 Debug 注册** |
+| `Packages/PluginAPI` | **独立包**：纯接口层 + C 原子垫片 `Sources/AtomicsShim`（唯一实现是 `AtomicFlag`） |
+| `Packages/PluginSupport` | **独立包**：可选共享工具（纯函数）+ `HotKeyRecorder` 控件 |
+| `Packages/PluginKit` | 根包的 target：InputBus / PermissionGate / Registry / HotKey / Notifier / Store / TaskRunner |
+| `Chassis-Plugins/` | **另一个仓库**：插件源码、插件规范文档；`Harness` 探针插件仅 Debug 注册 |
 | `HostApp` | 应用壳层：菜单栏、设置四页、诊断导出 |
 | `Scripts` | 工程生成、构建、运行、规范检查、图标生成 |
+
+两个接口包可独立构建，插件仓库通过路径依赖复用同一份声明：
+
+```bash
+swift build                                   # 根包：PluginKit + Harness
+swift build --package-path Packages/PluginAPI  # 接口层
+swift build --package-path Chassis-Plugins     # 插件仓库（独立构建）
+```
 
 ## 权限与授权
 

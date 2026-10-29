@@ -5,3 +5,6 @@ DerivedData/
 *.xcworkspace
 xcuserdata/
 .codebuddy/
+
+# 插件仓库：独立 git 仓库，基座仓库不跟踪
+Chassis-Plugins/

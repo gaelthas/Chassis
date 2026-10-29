@@ -9,6 +9,12 @@ options:
   generateEmptyDirectories: false
 
 packages:
+  # 接口层是独立包，插件仓库与基座共用同一份声明
+  PluginAPI:
+    path: Packages/PluginAPI
+  PluginSupport:
+    path: Packages/PluginSupport
+  # 根包：PluginKit（基座机制）+ Harness（源码在 Chassis-Plugins 仓库）
   ChassisPackage:
     path: .
 
@@ -37,12 +43,12 @@ targets:
           - "Info.plist"
           - "Chassis.entitlements"
     dependencies:
-      - package: ChassisPackage
+      - package: PluginAPI
         product: PluginAPI
+      - package: PluginSupport
+        product: PluginSupport
       - package: ChassisPackage
         product: PluginKit
-      - package: ChassisPackage
-        product: PluginSupport
       - package: ChassisPackage
         product: Harness
     info:

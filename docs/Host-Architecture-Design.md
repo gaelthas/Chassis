@@ -4,7 +4,7 @@
 > 状态：设计定稿
 > 设计形态：**从零构建的独立项目**，不继承任何既有实现
 > 交付目标：先交付**纯基座**（自身不包含任何业务功能），功能全部以插件形式后续接入
-> **配套文档**：`Plugin-Development-Guide.md`（插件开发规范）—— 本文档定义"为什么这样设计"，配套文档定义"插件怎么写"
+> **配套文档**：`Chassis-Plugins/docs/Plugin-Development-Guide.md`（插件开发规范，位于插件仓库）—— 本文档定义"为什么这样设计"，配套文档定义"插件怎么写"
 
 ---
 
@@ -1330,7 +1330,9 @@ ProjectRoot/
             └── MenuBarIcon.imageset   # Template Image
 ```
 
-**SwiftPM 与 Xcode 工程的分工**：`Package.swift` 只承载 `PluginAPI` / `PluginKit` / `PluginSupport` / `Plugins/*` 这些库 target。`HostApp` 必须是 **Xcode app target**——Info.plist、entitlements、Assets、签名与公证、`LSUIElement` 都无法由 SwiftPM 可执行目标完整提供；它通过本地包依赖引入上述库，并把 `PluginCatalog` 中引用的每个插件 target 加入链接。
+> **实现结构补充（M0 落地后）**：插件源码与《插件开发规范》位于**独立仓库** `Chassis-Plugins/`，以同级目录检出（`Chassis/Chassis-Plugins/`），基座仓库通过 `.gitignore` 忽略该目录。根包 `Package.swift` 用路径把 `Chassis-Plugins/Packages/<Plugin>` 编进同一二进制，「注册表即链接清单」与静态链接的收益均不变；`PluginAPI` / `PluginSupport` 独立成包，使插件仓库也能 `swift build` 自检，且不产生包级循环依赖（插件包只依赖接口包，基座只把插件 target 编进根包）。
+
+**SwiftPM 与 Xcode 工程的分工**：`Packages/PluginAPI`（含 C 原子垫片）、`Packages/PluginSupport` 各自是独立包，根包的 `Package.swift` 承载 `PluginKit` 与插件 target（源码位于插件仓库）。`HostApp` 必须是 **Xcode app target**——Info.plist、entitlements、Assets、签名与公证、`LSUIElement` 都无法由 SwiftPM 可执行目标完整提供；它通过本地包依赖引入上述库，并把 `PluginCatalog` 中引用的每个插件 target 加入链接。
 
 这条依赖关系不能省略也不能自动推导：**插件 target 必须出现在 HostApp 的 dependencies 里**，否则 `PluginCatalog` 中的 `MyPlugin.self` 直接编译失败（找不到符号）。这个报错恰好是好事——它保证「注册表即链接清单」，不会出现"注册代码写了但插件没被链接进二进制"的静默丢失。
 

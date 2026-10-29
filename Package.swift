@@ -1,42 +1,40 @@
 // swift-tools-version: 6.0
 import PackageDescription
 
+/// 基座仓库的根包：只承载基座机制（PluginKit）与插件的链接入口（Harness）。
+///
+/// - `PluginAPI` / `PluginSupport` 是独立包（`Packages/` 下），插件仓库与基座共用。
+/// - `Harness` 的源码在独立仓库 `Chassis-Plugins`（不被本仓库跟踪），这里用路径把它
+///   编进同一个二进制：静态链接模型下「注册表即链接清单」（设计文档 §10）。
+///   该目录缺失时构建会失败，`Scripts/bootstrap.sh` 会提示先把插件仓库放到位。
 let package = Package(
     name: "Chassis",
     defaultLocalization: "zh-Hans",
     platforms: [.macOS(.v14)],
     products: [
-        .library(name: "PluginAPI", targets: ["PluginAPI"]),
         .library(name: "PluginKit", targets: ["PluginKit"]),
-        .library(name: "PluginSupport", targets: ["PluginSupport"]),
         .library(name: "Harness", targets: ["Harness"]),
     ],
+    dependencies: [
+        .package(path: "Packages/PluginAPI"),
+        .package(path: "Packages/PluginSupport"),
+    ],
     targets: [
-        // 唯一一个 C target：tap 线程需要无锁原子，而 macOS 14 目标下没有 Synchronization.Atomic。
-        // 不引入 swift-atomics 是刻意的：一个 40 行的 C 垫片就能满足「无锁、无分配、无 ARC」。
-        .target(
-            name: "AtomicsShim",
-            path: "Packages/AtomicsShim"
-        ),
-        .target(
-            name: "PluginAPI",
-            dependencies: ["AtomicsShim"],
-            path: "Packages/PluginAPI/Sources/PluginAPI"
-        ),
         .target(
             name: "PluginKit",
-            dependencies: ["PluginAPI", "AtomicsShim"],
+            dependencies: [
+                .product(name: "PluginAPI", package: "PluginAPI"),
+                .product(name: "AtomicsShim", package: "PluginAPI"),
+            ],
             path: "Packages/PluginKit/Sources/PluginKit"
         ),
         .target(
-            name: "PluginSupport",
-            dependencies: ["PluginAPI"],
-            path: "Packages/PluginSupport/Sources/PluginSupport"
-        ),
-        .target(
             name: "Harness",
-            dependencies: ["PluginAPI", "PluginSupport"],
-            path: "Packages/Plugins/Harness",
+            dependencies: [
+                .product(name: "PluginAPI", package: "PluginAPI"),
+                .product(name: "PluginSupport", package: "PluginSupport"),
+            ],
+            path: "Chassis-Plugins/Packages/Harness",
             resources: [.process("Resources")]
         ),
     ]
