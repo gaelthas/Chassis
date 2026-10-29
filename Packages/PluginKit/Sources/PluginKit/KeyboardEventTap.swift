@@ -77,7 +77,13 @@ private func keyboardTapCallback(
         // 只读快照；takeUnretainedValue 是仅有的一次 ARC 操作，无分配、无锁。
         let snapshot = Unmanaged<KeyboardSnapshot>.fromOpaque(pointer).takeUnretainedValue()
         var consume = false
-        let keyEvent = KeyEvent(keyCode: keyCode, flags: flags, isRepeat: isRepeat)
+        let kind: KeyEventKind
+        switch type {
+        case .keyDown: kind = .keyDown
+        case .keyUp: kind = .keyUp
+        default: kind = .flagsChanged
+        }
+        let keyEvent = KeyEvent(keyCode: keyCode, flags: flags, isRepeat: isRepeat, kind: kind)
 
         for route in snapshot.routes {
             guard route.matches(keyCode: keyCode, flags: flags) else { continue }

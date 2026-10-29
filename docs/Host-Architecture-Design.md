@@ -1668,9 +1668,13 @@ public struct KeyEvent: Sendable {
     public let keyCode: Int64
     public let flags: CGEventFlags
     public let isRepeat: Bool
+    public let kind: KeyEventKind              // 增补：区分按下 / 抬起 / 修饰键变化
 
-    public init(keyCode: Int64, flags: CGEventFlags, isRepeat: Bool)
+    public init(keyCode: Int64, flags: CGEventFlags, isRepeat: Bool,
+                kind: KeyEventKind = .keyDown)
 }
+
+public enum KeyEventKind: Sendable { case keyDown, keyUp, flagsChanged }
 
 public enum KeyIntercept: Sendable { case passthrough, consume }
 
@@ -1819,3 +1823,5 @@ public final class TaskRunner {
 | ADR-24 | 输入降级事件的入口 | `InputBus.subscribeToInterruptions`，不参与引用计数 | 文档要求插件"处理 tap 中断"却无订阅入口，等于要求一件做不到的事（§6.3） |
 | ADR-25 | 权限映射粒度 | 按订阅类型分别映射（键盘→输入监控；点击/指针→辅助功能） | 笼统写"输入总线需要输入监控"会让插件声明错能力，用户跑到错误的系统设置页（§5.4） |
 | ADR-26 | 后台执行上下文命名 | `performBackground`（原 `performAX`） | 名字里带 AX 会让插件作者以为截图/窗口枚举不归它管，转而自建队列，绕过唯一的串行执行器（§5.3） |
+| ADR-27 | `KeyEvent` 增加 `kind` | 增补 `keyDown` / `keyUp` / `flagsChanged`，默认值保持源码兼容 | 「按住 ⌘Q 才退出」「松开 ⌥ 才提交切换」都需要抬起语义；缺它只能让插件自建 tap，破坏单一事件源（M1 之后的首批功能插件暴露出的缺口） |
+| ADR-28 | 一个插件可注册多个快捷键 | `HotKeyArbitrator` 按 owner 维护集合；同一组合键仍全局唯一，冲突照旧抛错 | 「⌥⌘1~9 切换 Dock 第 N 个应用」天然需要 10 个绑定；限制为「一插件一键」会迫使插件自建键盘 tap，反而绕开仲裁 |

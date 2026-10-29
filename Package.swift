@@ -14,6 +14,9 @@ let package = Package(
     products: [
         .library(name: "PluginKit", targets: ["PluginKit"]),
         .library(name: "Harness", targets: ["Harness"]),
+        .library(name: "DockActions", targets: ["DockActions"]),
+        .library(name: "SlowQuit", targets: ["SlowQuit"]),
+        .library(name: "WindowSwitcher", targets: ["WindowSwitcher"]),
     ],
     dependencies: [
         .package(path: "Packages/PluginAPI"),
@@ -35,6 +38,30 @@ let package = Package(
                 .product(name: "PluginSupport", package: "PluginSupport"),
             ],
             path: "Chassis-Plugins/Packages/Harness",
+            resources: [.process("Resources")]
+        ),
+        .target(
+            name: "DockActions",
+            dependencies: [
+                .product(name: "PluginAPI", package: "PluginAPI"),
+            ],
+            path: "Chassis-Plugins/Packages/DockActions",
+            resources: [.process("Resources")]
+        ),
+        .target(
+            name: "SlowQuit",
+            dependencies: [
+                .product(name: "PluginAPI", package: "PluginAPI"),
+            ],
+            path: "Chassis-Plugins/Packages/SlowQuit",
+            resources: [.process("Resources")]
+        ),
+        .target(
+            name: "WindowSwitcher",
+            dependencies: [
+                .product(name: "PluginAPI", package: "PluginAPI"),
+            ],
+            path: "Chassis-Plugins/Packages/WindowSwitcher",
             resources: [.process("Resources")]
         ),
     ]

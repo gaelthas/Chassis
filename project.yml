@@ -51,6 +51,12 @@ targets:
         product: PluginKit
       - package: ChassisPackage
         product: Harness
+      - package: ChassisPackage
+        product: DockActions
+      - package: ChassisPackage
+        product: SlowQuit
+      - package: ChassisPackage
+        product: WindowSwitcher
     info:
       path: HostApp/Info.plist
       properties:

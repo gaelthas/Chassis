@@ -50,7 +50,7 @@ xcodebuild -project Chassis.xcodeproj -scheme Chassis -configuration Debug \
 | `Packages/PluginAPI` | **独立包**：纯接口层 + C 原子垫片 `Sources/AtomicsShim`（唯一实现是 `AtomicFlag`） |
 | `Packages/PluginSupport` | **独立包**：可选共享工具（纯函数）+ `HotKeyRecorder` 控件 |
 | `Packages/PluginKit` | 根包的 target：InputBus / PermissionGate / Registry / HotKey / Notifier / Store / TaskRunner |
-| `Chassis-Plugins/` | **另一个仓库**：插件源码、插件规范文档；`Harness` 探针插件仅 Debug 注册 |
+| `Chassis-Plugins/` | **另一个仓库**：插件源码、插件规范文档 |
 | `HostApp` | 应用壳层：菜单栏、设置四页、诊断导出 |
 | `Scripts` | 工程生成、构建、运行、规范检查、图标生成 |
 
@@ -61,6 +61,17 @@ swift build                                   # 根包：PluginKit + Harness
 swift build --package-path Packages/PluginAPI  # 接口层
 swift build --package-path Chassis-Plugins     # 插件仓库（独立构建）
 ```
+
+## 已接入插件（`Chassis-Plugins`）
+
+| 插件 | 功能 | 能力声明 |
+|---|---|---|
+| `DockActions` | 点击前台应用的 Dock 图标最小化；⌥⌘1~9 / ⌥⌘↓ 操作 Dock 应用；黑白名单 | `.accessibility` |
+| `SlowQuit` | 长按 ⌘Q 达设定时长才退出前台应用，按住期间显示进度环 | `.inputMonitoring` |
+| `WindowSwitcher` | ⌥Tab 在所有窗口间切换；图标模式默认，实时缩略图可选 | `.inputMonitoring` + `.accessibility`，可选 `.screenCapture` |
+| `Harness` | 基座探针（仅 Debug 构建注册） | `.accessibility` + `.inputMonitoring`，可选 `.screenCapture` |
+
+插件全部默认关闭：未启用时不申请权限、不订阅事件。
 
 ## 权限与授权
 

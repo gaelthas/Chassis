@@ -53,7 +53,8 @@ public final class HotKeyArbitrator {
 
     private var registrations: [UInt32: Registration] = [:]
     private var specIndex: [HotKeySpec: UInt32] = [:]
-    private var ownerIndex: [String: UInt32] = [:]
+    /// 一个插件可以注册多个快捷键（如 Dock 位次 1~9）；同一组合键仍全局唯一。
+    private var ownerIndex: [String: Set<UInt32>] = [:]
     private var nextID: UInt32 = 1
     private var eventHandler: EventHandlerRef?
 
@@ -81,25 +82,22 @@ public final class HotKeyArbitrator {
             throw HotKeyError.conflict(ownerTitle: title(for: existing.owner))
         }
 
-        // 同一插件重复调用 register：先摘掉旧组合键，保证「一个插件一个快捷键」。
-        if let oldID = ownerIndex[owner] {
-            unregister(id: oldID)
-        }
-
         let id = nextID
         nextID += 1
         let ref = try createCarbonHotKey(spec: spec, id: id)
         registrations[id] = Registration(owner: owner, spec: spec, handler: handler, hotKeyRef: ref)
         specIndex[spec] = id
-        ownerIndex[owner] = id
+        ownerIndex[owner, default: []].insert(id)
     }
 
     /// 只换组合键，handler 不变；新键注册失败则保留旧键并抛错（原子性）。
     public func update(owner: String, to spec: HotKeySpec) throws {
         try validate(spec)
 
-        guard let currentID = ownerIndex[owner], let current = registrations[currentID] else {
-            throw HotKeyError.invalid("该插件尚未注册任何快捷键")
+        let owned = ownerIndex[owner] ?? []
+        guard owned.count == 1, let currentID = owned.first, let current = registrations[currentID] else {
+            // 多快捷键插件（如 1~9）请 unregister() 后重新注册，避免语义含糊。
+            throw HotKeyError.invalid(owned.isEmpty ? "该插件尚未注册任何快捷键" : "该插件注册了多个快捷键，请重新注册")
         }
         if current.spec == spec { return }
 
@@ -115,12 +113,13 @@ public final class HotKeyArbitrator {
         unregister(id: currentID)
         registrations[newID] = Registration(owner: owner, spec: spec, handler: current.handler, hotKeyRef: ref)
         specIndex[spec] = newID
-        ownerIndex[owner] = newID
+        ownerIndex[owner, default: []].insert(newID)
     }
 
     public func unregisterAll(owner: String) {
-        guard let id = ownerIndex[owner] else { return }
-        unregister(id: id)
+        for id in ownerIndex[owner] ?? [] {
+            unregister(id: id)
+        }
     }
 
     public func unregister(owner: String) {
@@ -157,8 +156,13 @@ public final class HotKeyArbitrator {
     private func unregister(id: UInt32) {
         guard let registration = registrations.removeValue(forKey: id) else { return }
         specIndex.removeValue(forKey: registration.spec)
-        if ownerIndex[registration.owner] == id {
-            ownerIndex.removeValue(forKey: registration.owner)
+        if var owned = ownerIndex[registration.owner] {
+            owned.remove(id)
+            if owned.isEmpty {
+                ownerIndex.removeValue(forKey: registration.owner)
+            } else {
+                ownerIndex[registration.owner] = owned
+            }
         }
         if let ref = registration.hotKeyRef {
             UnregisterEventHotKey(ref)
