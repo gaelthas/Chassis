@@ -2,18 +2,18 @@
 # 构建并安装到 /Applications，然后启动。
 # 固定安装位置 + 稳定签名 = TCC 授权不会因为重新构建而失效。
 #
-# 用法：./Scripts/install.sh [Debug|Release]
+# 用法：./Scripts/install.sh [Release|Debug]（默认 Release：Debug 构建包含探针插件）
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
 # 配置名归一化：接受 debug/DEBUG/Release 等写法，未知值直接报错而不是生成一个不存在的路径。
-case "$(printf '%s' "${1:-Debug}" | tr '[:upper:]' '[:lower:]')" in
+case "$(printf '%s' "${1:-Release}" | tr '[:upper:]' '[:lower:]')" in
   debug)   CONFIGURATION="Debug" ;;
   release) CONFIGURATION="Release" ;;
   *)
     echo "未知构建配置：${1}" >&2
-    echo "用法：$0 [Debug|Release]" >&2
+    echo "用法：$0 [Release|Debug]" >&2
     exit 2
     ;;
 esac

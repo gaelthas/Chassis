@@ -127,7 +127,10 @@
 
 /* 插件 */
 "plugins.empty.title" = "尚未安装任何插件";
-"plugins.empty.detail" = "基座本身不包含任何业务功能。插件以静态模块接入后，会出现在这里。";
+"plugins.bundled.section" = "可安装的内置插件";
+"plugins.bundled.detail" = "随应用分发，点「安装」后才会进入插件列表；启用前仍需确认授权。";
+"plugins.bundled.install" = "安装";
+"plugins.empty.detail" = "基座本身不包含任何业务功能。可从上方安装随应用分发的内置插件，或点「安装插件…」导入 .chassisplugin 包。安装后还需手动启用。";
 "plugins.select.hint" = "选择一个插件查看详情";
 "plugins.state.disabled" = "未启用";
 "plugins.state.missing" = "缺少权限";

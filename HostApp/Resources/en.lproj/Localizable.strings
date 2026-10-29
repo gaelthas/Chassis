@@ -127,7 +127,10 @@
 
 /* Plugins */
 "plugins.empty.title" = "No plugins installed";
-"plugins.empty.detail" = "The host contains no business features. Plugins appear here once they are linked as static modules.";
+"plugins.bundled.section" = "Bundled plugins";
+"plugins.bundled.detail" = "Shipped with the app. They appear in the list only after you install them; enabling still requires the permission prompt.";
+"plugins.bundled.install" = "Install";
+"plugins.empty.detail" = "The host ships no features by itself. Install one of the bundled plugins above, or use Install Plugin… to import a .chassisplugin package. Installed plugins still need to be enabled.";
 "plugins.select.hint" = "Select a plugin to see details";
 "plugins.state.disabled" = "Disabled";
 "plugins.state.missing" = "Missing permission";

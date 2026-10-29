@@ -30,7 +30,8 @@ git clone <插件仓库地址> Chassis-Plugins
 ./Scripts/build.sh         # Debug 构建（与 Dock2Min 同一开发证书），输出 .app 路径
 ./Scripts/build.sh Release # Release 构建（同一签名身份，探针插件不注册）
 ./Scripts/run.sh           # 构建后启动
-./Scripts/install.sh       # 构建并替换 /Applications/Chassis.app 后启动（推荐，TCC 授权稳定）
+./Scripts/install.sh       # 构建 Release 并替换 /Applications/Chassis.app 后启动（推荐，TCC 授权稳定）
+./Scripts/install.sh Debug # 调试构建（包含 Harness 探针，且仍需手动安装）
 ./Scripts/check-guidelines.sh   # 规范兜底检查
 swift build                # 单独校验 SwiftPM 各库 target
 ```
@@ -72,6 +73,10 @@ swift build --package-path Chassis-Plugins     # 插件仓库（独立构建）
 | `DockHoverPreview` | 悬停 Dock 图标弹出该应用窗口预览，点击切换；图标默认，缩略图可选 | `.accessibility`，可选 `.screenCapture` |
 | `UsageStatistics` | 按日统计各应用前台时长（本地保留 30 天） | 无（零权限） |
 | `Harness` | 基座探针（仅 Debug 构建注册） | `.accessibility` + `.inputMonitoring`，可选 `.screenCapture` |
+
+**全新安装后插件列表为空**：上表插件随应用分发，但需要逐个点「安装」才会进入注册表；
+安装 ≠ 启用，启用前仍要过逐插件授权。Debug 构建额外包含 `Harness` 探针（同样需手动安装），
+因此日常安装请用 `./Scripts/install.sh`（默认 `Release`）。
 
 插件全部默认关闭：未启用时不申请权限、不订阅事件。
 
