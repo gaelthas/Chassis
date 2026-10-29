@@ -105,6 +105,10 @@
 "plugins.consent.systemMissing" = "not granted by macOS";
 "common.close" = "Close";
 
+"plugins.source.official" = "Official";
+"install.publisher.sameTeam" = "Same developer as the host";
+"install.publisher.thirdParty" = "Third-party";
+
 /* Plugin marketplace */
 "pane.marketplace" = "Marketplace";
 

@@ -155,12 +155,18 @@ private struct PluginRow: View {
                     Text(verbatim: "v\(entry.manifest.version)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    if entry.isExternal {
-                        Text("plugins.source.external")
+                    if let info = entry.source.externalInfo {
+                        // 与基座同 Team 签名 = 官方插件；否则才是第三方。
+                        let official = info.teamID != nil && info.teamID == AppIdentity.teamID
+                        Text(official ? "plugins.source.official" : "plugins.source.external")
                             .font(.caption2)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 1)
-                            .background(Color.accentColor.opacity(0.16), in: Capsule())
+                            .background(
+                                (official ? Color.accentColor : Color.orange).opacity(0.16),
+                                in: Capsule()
+                            )
+                            .foregroundStyle(official ? Color.secondary : Color.orange)
                     }
                 }
 
@@ -258,8 +264,10 @@ private struct CapabilityBadge: View {
 }
 
 private extension PluginSource {
-    var isExternal: Bool {
-        if case .external = self { return true }
-        return false
+    var isExternal: Bool { externalInfo != nil }
+
+    var externalInfo: ExternalPluginInfo? {
+        if case let .external(info) = self { return info }
+        return nil
     }
 }

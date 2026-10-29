@@ -105,6 +105,10 @@
 "plugins.consent.systemMissing" = "系统未授权";
 "common.close" = "关闭";
 
+"plugins.source.official" = "官方";
+"install.publisher.sameTeam" = "与基座同一开发者";
+"install.publisher.thirdParty" = "第三方";
+
 /* 插件市场 */
 "pane.marketplace" = "插件市场";
 

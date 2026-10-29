@@ -150,6 +150,13 @@ struct PluginDetailSheet: View {
             LabeledContent("install.signature") {
                 Text(verbatim: info.teamID ?? String(localized: "install.signature.development"))
             }
+            LabeledContent("install.publisher") {
+                if let teamID = info.teamID, teamID == AppIdentity.teamID {
+                    Text("install.publisher.sameTeam")
+                } else {
+                    Text("install.publisher.thirdParty")
+                }
+            }
             LabeledContent("install.installedAt") {
                 Text(verbatim: info.installedAt.formatted(date: .abbreviated, time: .shortened))
             }
