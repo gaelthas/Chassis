@@ -189,7 +189,13 @@ public final class PermissionGate {
         case .accessibility:
             return AXIsProcessTrusted()
         case .inputMonitoring:
-            return IOHIDCheckAccess(kIOHIDRequestTypeListenEvent) == kIOHIDAccessTypeGranted
+            // `unknown` 是瞬时状态（系统刚唤醒、辅助进程重启），不能当作「已收回」，
+            // 否则会出现「刚启用就报缺少权限」的抖动。
+            switch IOHIDCheckAccess(kIOHIDRequestTypeListenEvent) {
+            case kIOHIDAccessTypeGranted: return true
+            case kIOHIDAccessTypeDenied: return false
+            default: return cache[.inputMonitoring] ?? false
+            }
         case .screenCapture:
             return CGPreflightScreenCaptureAccess()
         }

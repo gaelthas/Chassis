@@ -437,6 +437,21 @@ public final class PluginRegistry {
         for id in subscribers {
             guard settings.enabledPluginIDs.contains(id) else { continue }
             deactivateInstance(id: id)
+
+            // 授权仍在：这只是 tap 超时/重建失败，重试即可。
+            // 直接报 missingCapabilities 会表现为「明明有权限却提示缺少权限」。
+            if gate.status(of: capability) {
+                inputBus.resetAvailability()
+                states[id] = .disabled
+                evaluate(id: id)
+                if isActive(id) {
+                    logStore.append(level: .warning, pluginID: id, message: "输入源短暂不可用，已自动恢复：\(source)")
+                } else {
+                    logStore.append(level: .error, pluginID: id, message: "输入源恢复失败：\(source)")
+                }
+                continue
+            }
+
             let already = states[id]
             var missing: Set<Capability> = [capability]
             if case let .missingCapabilities(existing) = already {

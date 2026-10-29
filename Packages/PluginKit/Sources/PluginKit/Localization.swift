@@ -17,7 +17,7 @@ extension LocalizedStringKey {
 
 extension PluginManifest {
     /// 本地化后的纯文本标题。
-    var localizedTitle: String? {
+    public var localizedTitle: String? {
         guard let key = title.plainKey else { return nil }
         return resourceBundle.localizedString(forKey: key, value: nil, table: nil)
     }

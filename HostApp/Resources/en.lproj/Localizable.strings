@@ -99,6 +99,12 @@
 
 "common.ok" = "OK";
 
+"plugins.detail.help" = "Details and permissions";
+"plugins.openSettings" = "Open Settings Window";
+"plugins.settingsInWindow" = "The plugin's settings open in a separate window, so you can switch back freely.";
+"plugins.consent.systemMissing" = "not granted by macOS";
+"common.close" = "Close";
+
 /* Plugin marketplace */
 "pane.marketplace" = "Marketplace";
 

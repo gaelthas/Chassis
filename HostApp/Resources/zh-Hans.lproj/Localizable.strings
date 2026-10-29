@@ -99,6 +99,12 @@
 
 "common.ok" = "好";
 
+"plugins.detail.help" = "查看详情与授权";
+"plugins.openSettings" = "打开设置窗口";
+"plugins.settingsInWindow" = "插件设置已在独立窗口中打开，可随时切回。";
+"plugins.consent.systemMissing" = "系统未授权";
+"common.close" = "关闭";
+
 /* 插件市场 */
 "pane.marketplace" = "插件市场";
 
