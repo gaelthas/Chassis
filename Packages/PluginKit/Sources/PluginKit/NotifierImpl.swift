@@ -59,18 +59,27 @@ public final class NotifierImpl: NSObject {
             return authorization == .authorized
         }
         hasRequestedAuthorization = true
-        guard let center else {
+        guard center != nil else {
             authorization = .notDetermined
             return false
         }
-        do {
-            let granted = try await center.requestAuthorization(options: [.alert, .sound])
-            authorization = granted ? .authorized : .denied
-            return granted
-        } catch {
-            logStore.append(level: .warning, pluginID: nil, message: "通知授权申请失败：\(error.localizedDescription)")
+        guard let granted = await Self.requestSystemAuthorization() else {
+            logStore.append(level: .warning, pluginID: nil, message: "通知授权申请失败或当前环境不支持")
             authorization = .denied
             return false
+        }
+        authorization = granted ? .authorized : .denied
+        return granted
+    }
+
+    /// `UNUserNotificationCenter` / `UNNotificationSettings` 都不是 Sendable：
+    /// 不能在 MainActor 上把它们送进 await，只能把 Sendable 的结果带回来。
+    private nonisolated static func requestSystemAuthorization() async -> Bool? {
+        guard Bundle.main.bundleURL.pathExtension == "app" else { return nil }
+        do {
+            return try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
+        } catch {
+            return nil
         }
     }
 
