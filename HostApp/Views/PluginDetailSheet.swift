@@ -147,9 +147,8 @@ struct PluginDetailSheet: View {
     private func externalInfo(_ info: ExternalPluginInfo) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             LabeledContent("install.version", value: info.version)
-            LabeledContent("install.signature") {
-                Text(verbatim: info.teamID ?? String(localized: "install.signature.development"))
-            }
+            // 不展示原始 Team ID：它对用户没有意义，也不是需要公开的信息。
+            // 信任判断只保留「是否与基座同一开发者」，原始值仍可在诊断导出里查到。
             LabeledContent("install.publisher") {
                 if let teamID = info.teamID, teamID == AppIdentity.teamID {
                     Text("install.publisher.sameTeam")

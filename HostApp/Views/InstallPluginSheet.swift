@@ -65,12 +65,13 @@ struct InstallPluginSheet: View {
                 Text("install.signature")
                     .foregroundStyle(.secondary)
                     .frame(width: 70, alignment: .leading)
-                if staged.isDevelopmentSigned {
+                if staged.isDevelopmentSigned || staged.teamID == nil {
                     Text("install.signature.development")
                         .foregroundStyle(.orange)
+                } else if staged.teamID == AppIdentity.teamID {
+                    Text("install.publisher.sameTeam")
                 } else {
-                    Text(verbatim: staged.teamID ?? "-")
-                        .textSelection(.enabled)
+                    Text("install.publisher.thirdParty")
                 }
             }
         }
