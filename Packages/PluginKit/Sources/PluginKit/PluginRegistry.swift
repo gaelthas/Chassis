@@ -227,12 +227,14 @@ public final class PluginRegistry {
 
     /// 已生效的授权（清单指纹匹配才算数：插件升级新增能力后必须重新确认）。
     public func grantedConsent(of id: String) -> Set<Capability> {
-        guard let manifest = manifest(of: id),
-              let consent = consents.consent(for: id),
-              consent.manifestFingerprint == PluginConsentStore.fingerprint(manifest: manifest) else {
+        guard manifest(of: id) != nil,
+              let consent = consents.consent(for: id) else {
             return []
         }
-        return consent.granted
+        // 不再用指纹判「整份授权作废」：升级只应让**新增的必需能力**重新确认，
+        // 这件事由 missingConsent（declared - granted）与 required 子集判断负责。
+        // 这里只把授权裁剪到当前声明范围内，避免残留已移除的能力。
+        return consent.granted.intersection(declaredCapabilities(of: id))
     }
 
     public func declaredCapabilities(of id: String) -> Set<Capability> {

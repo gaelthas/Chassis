@@ -50,11 +50,15 @@ public final class PluginConsentStore {
         defaults.removeObject(forKey: keyPrefix + id)
     }
 
-    /// 仅由能力声明与版本组成：正文/图标变更不应触发重新授权，能力变化必须触发。
+    /// 只由能力声明组成：正文/图标/版本变更都不应触发重新授权。
+    ///
+    /// 早期把 `version` 也算进指纹，副作用是**每次插件升级都会清空授权**，
+    /// 插件看起来仍是「已启用」，实际因为缺少授权而被基座静默停用
+    /// （表现为 ⌥Tab、点击 Dock 等功能突然失效）。
     public static func fingerprint(manifest: PluginManifest) -> String {
         let required = manifest.requiredCapabilities.map(\.rawValue).sorted().joined(separator: ",")
         let optional = manifest.optionalCapabilities.map(\.rawValue).sorted().joined(separator: ",")
-        let raw = "\(manifest.id)|\(manifest.version)|\(required)|\(optional)"
+        let raw = "\(manifest.id)|\(required)|\(optional)"
         let digest = SHA256.hash(data: Data(raw.utf8))
         return digest.map { String(format: "%02x", $0) }.joined()
     }
