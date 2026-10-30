@@ -160,6 +160,33 @@ swift run MarketCheck "file://$PWD/Chassis-Plugins/Market/index.json"
 
 签名密钥与发布流程见 `docs/Marketplace-Design.md`。
 
+## 发布与自动 Release
+
+版本号在 `project.yml`：`MARKETING_VERSION`（用户可见版本）+ `CURRENT_PROJECT_VERSION`（构建号）。
+
+**本地一键发布**（带本机 Apple Development 签名，TCC 授权不失效）：
+
+```bash
+./Scripts/release.sh 1.0.2     # 升版本 → 构建 → dist/*.dmg + *.zip → tag → push → gh release create
+./Scripts/release.sh           # 用 project.yml 里的当前版本
+```
+
+需要 `gh auth login`。产物默认放进 `dist/`（已忽略，不入库）。
+
+**CI 自动发布**（推 tag 触发 `.github/workflows/release.yml`）：
+
+```bash
+git tag -a v1.0.2 -m "Chassis 1.0.2" && git push origin v1.0.2
+```
+
+- 配置仓库 secrets 后产物可直接运行：
+  - `MACOS_CERT_P12`：`.p12` 的 base64（`security export -t identities -f pkcs12 -k login.keychain-db -o cert.p12 && base64 -i cert.p12 | pbcopy`）
+  - `MACOS_CERT_PASSWORD`：导出时设置的密码
+- 未配置则走 `CHASSIS_NO_SIGN=1` 的无签名构建，用户首次打开需手动放行
+- 工作流用 `softprops/action-gh-release`，Release Notes 由 GitHub 自动生成
+
+两条路径二选一：`release.sh` 会自己打 tag 并创建 Release；如果你想完全交给 CI，就手动推 tag。
+
 ## 权限与授权
 
 启动路径**不申请任何权限**，也不创建任何 Event Tap。权限只在用户点击「授权」时请求：

@@ -47,8 +47,8 @@ for file in $(grep -Rl ': FeaturePlugin' "$PLUGINS_DIR" --include='*.swift' | gr
   PLUGIN_VERSION=$(grep -oE 'minHostVersion["]?[: ]+"?[0-9]+\.[0-9]+\.[0-9]+' "$file" | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
   if [ -z "$PLUGIN_VERSION" ]; then
     fail "$file 未声明 minHostVersion"
-  elif [ "$PLUGIN_VERSION" != "$HOST_VERSION" ]; then
-    fail "$file 的 minHostVersion=$PLUGIN_VERSION 与基座 $HOST_VERSION 不一致"
+  elif ! python3 -c "import sys; sys.exit(0 if tuple(map(int, sys.argv[1].split('.'))) <= tuple(map(int, sys.argv[2].split('.'))) else 1)" "$PLUGIN_VERSION" "$HOST_VERSION"; then
+    fail "$file 的 minHostVersion=$PLUGIN_VERSION 高于基座 $HOST_VERSION"
   else
     ok "$(basename "$file") minHostVersion=$PLUGIN_VERSION"
   fi

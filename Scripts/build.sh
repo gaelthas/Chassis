@@ -36,12 +36,19 @@ fi
 
 # 正常情况下不传任何签名覆盖参数，让工程设置生效；
 # 只有在显式指定 CHASSIS_CODE_SIGN_IDENTITY 时才覆盖（例如临时换证书）。
+# CI 没有本地开发证书时用 CHASSIS_NO_SIGN=1：允许无签名构建（产物需要用户手动放行）。
+SIGN_ARGS=()
+if [ "${CHASSIS_NO_SIGN:-0}" = "1" ]; then
+  SIGN_ARGS=(CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="-")
+fi
+
 xcodebuild \
   -project Chassis.xcodeproj \
   -scheme Chassis \
   -configuration "$CONFIGURATION" \
   -derivedDataPath "$DERIVED" \
   ${CHASSIS_CODE_SIGN_IDENTITY:+CODE_SIGN_IDENTITY="$CHASSIS_CODE_SIGN_IDENTITY"} \
+  ${SIGN_ARGS[@]+"${SIGN_ARGS[@]}"} \
   build
 
 APP="$DERIVED/Build/Products/$CONFIGURATION/Chassis.app"
@@ -51,6 +58,12 @@ if [ ! -d "$APP" ]; then
 fi
 
 echo "APP: $APP"
+
+if [ "${CHASSIS_NO_SIGN:-0}" = "1" ]; then
+  echo "签名：无（CHASSIS_NO_SIGN=1，CI 构建）"
+  exit 0
+fi
+
 echo "签名：$(codesign -dvv "$APP" 2>&1 | sed -n 's/^Authority=//p' | head -1)"
 echo "Team：$(codesign -dv "$APP" 2>&1 | sed -n 's/^TeamIdentifier=//p' | head -1)"
 DR=$(codesign -d -r- "$APP" 2>&1 | sed -n 's/^designated => //p')

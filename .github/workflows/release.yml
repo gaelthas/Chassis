@@ -1,0 +1,62 @@
+name: Release
+
+# 打 tag（v1.0.1）即自动构建并创建 Release。
+# 配置了签名证书 secrets 时产物可直接双击运行；未配置则为无签名构建（用户需手动放行）。
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Import signing certificate (optional)
+        env:
+          CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+        run: |
+          if [ -z "${CERT_P12}" ]; then
+            echo "未配置 MACOS_CERT_P12：本次为无签名构建"
+            exit 0
+          fi
+          echo "$CERT_P12" | base64 --decode > /tmp/cert.p12
+          security create-keychain -p actions build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p actions build.keychain
+          security import /tmp/cert.p12 -k build.keychain -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -k actions build.keychain >/dev/null
+          rm -f /tmp/cert.p12
+
+      - name: Build
+        env:
+          CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+        run: |
+          xcodegen generate
+          if [ -z "${CERT_P12}" ]; then
+            export CHASSIS_NO_SIGN=1
+          fi
+          ./Scripts/build.sh Release
+
+      - name: Package
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          APP=".build/xcode/Build/Products/Release/Chassis.app"
+          mkdir -p dist
+          hdiutil create -volname "Chassis" -srcfolder "$APP" -ov -format UDZO "dist/Chassis-$VERSION.dmg" >/dev/null
+          /usr/bin/ditto -c -k --keepParent "$APP" "dist/Chassis-$VERSION.zip"
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+          fail_on_unmatched_files: true
