@@ -66,8 +66,8 @@ targets:
         ChassisSummary: "插件化 macOS 工具基座"
         ChassisUpdateURL: "https://github.com/gaelthas/chassis/releases"
         # 插件市场：打包时填入线上索引地址与签名公钥；留空则市场页只显示配置说明
-        ChassisMarketplaceURL: ""
-        ChassisMarketplacePublicKey: ""
+        ChassisMarketplaceURL: "https://raw.githubusercontent.com/gaelthas/Chassis-Plugins/main/Market/index.json"
+        ChassisMarketplacePublicKey: "viVbaAgf2FQMGA0gDeXaaodeBoGH3/PiInmxQwGAizM="
     entitlements:
       path: HostApp/Chassis.entitlements
       properties:

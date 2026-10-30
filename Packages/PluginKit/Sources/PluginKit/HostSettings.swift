@@ -11,8 +11,10 @@ public final class HostSettings {
         static let showMenuBarIcon = "host.showMenuBarIcon"
         static let showSettingsOnLaunch = "host.showSettingsOnLaunch"
         static let allowThirdPartyPlugins = "host.allowThirdPartyPlugins"
-        static let marketplaceURL = "host.marketplaceURL"
-        static let marketplacePublicKey = "host.marketplacePublicKey"
+        static let marketplaceSources = "host.marketplaceSources"
+        // 旧版单市场配置，仅用于迁移
+        static let legacyMarketplaceURL = "host.marketplaceURL"
+        static let legacyMarketplacePublicKey = "host.marketplacePublicKey"
         static let autoCheckPluginUpdates = "host.autoCheckPluginUpdates"
         static let autoInstallPluginUpdates = "host.autoInstallPluginUpdates"
     }
@@ -38,15 +40,13 @@ public final class HostSettings {
         didSet { defaults.set(allowThirdPartyPlugins, forKey: Key.allowThirdPartyPlugins) }
     }
 
-    /// 插件市场索引地址。默认取 Info.plist 的 `ChassisMarketplaceURL`（打包时注入），
-    /// 用户或开发期可用 defaults 覆盖，便于自建/本地市场。
-    public var marketplaceURL: String {
-        didSet { defaults.set(marketplaceURL, forKey: Key.marketplaceURL) }
-    }
-
-    /// 市场索引签名公钥（base64 Ed25519）。为空时只有 DEBUG 的本地来源可用。
-    public var marketplacePublicKey: String {
-        didSet { defaults.set(marketplacePublicKey, forKey: Key.marketplacePublicKey) }
+    /// 插件市场来源列表。官方来源来自 Info.plist，用户可追加第三方市场。
+    public var marketplaceSources: [MarketplaceSource] {
+        didSet {
+            if let data = try? JSONEncoder().encode(marketplaceSources) {
+                defaults.set(data, forKey: Key.marketplaceSources)
+            }
+        }
     }
 
     public var autoCheckPluginUpdates: Bool {
@@ -67,10 +67,26 @@ public final class HostSettings {
         showSettingsOnLaunch = defaults.object(forKey: Key.showSettingsOnLaunch) as? Bool ?? true
         allowThirdPartyPlugins = defaults.object(forKey: Key.allowThirdPartyPlugins) as? Bool ?? false
 
-        let bundledURL = Bundle.main.object(forInfoDictionaryKey: "ChassisMarketplaceURL") as? String ?? ""
-        marketplaceURL = defaults.string(forKey: Key.marketplaceURL) ?? bundledURL
-        let bundledKey = Bundle.main.object(forInfoDictionaryKey: "ChassisMarketplacePublicKey") as? String ?? ""
-        marketplacePublicKey = defaults.string(forKey: Key.marketplacePublicKey) ?? bundledKey
+        if let data = defaults.data(forKey: Key.marketplaceSources),
+           let stored = try? JSONDecoder().decode([MarketplaceSource].self, from: data) {
+            marketplaceSources = stored
+        } else {
+            // 官方市场始终来自 Info.plist；旧的单市场覆盖作为附加来源保留，避免丢配置。
+            var initial = [MarketplaceSource.bundledOfficial()].compactMap { $0 }
+            let legacyURL = (defaults.string(forKey: Key.legacyMarketplaceURL) ?? "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if !legacyURL.isEmpty, legacyURL != initial.first?.url {
+                initial.append(
+                    MarketplaceSource(
+                        id: "legacy",
+                        name: "自定义市场",
+                        url: legacyURL,
+                        publicKey: defaults.string(forKey: Key.legacyMarketplacePublicKey) ?? ""
+                    )
+                )
+            }
+            marketplaceSources = initial
+        }
         autoCheckPluginUpdates = defaults.object(forKey: Key.autoCheckPluginUpdates) as? Bool ?? true
         autoInstallPluginUpdates = defaults.object(forKey: Key.autoInstallPluginUpdates) as? Bool ?? false
     }

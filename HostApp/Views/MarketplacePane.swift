@@ -8,15 +8,23 @@ struct MarketplacePane: View {
 
     private var market: PluginUpdateCenter { environment.marketplace }
 
+    @State private var showAddSource = false
+    @State private var newName = ""
+    @State private var newURL = ""
+    @State private var newKey = ""
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
+            Divider()
+            sourcesSection
             Divider()
             content
             Divider()
             footer
         }
         .task { await market.refreshIfStale() }
+        .sheet(isPresented: $showAddSource) { addSourceSheet }
     }
 
     // MARK: - 头部
@@ -87,6 +95,104 @@ struct MarketplacePane: View {
         }
     }
 
+    // MARK: - 来源
+
+    private var sourcesSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("market.sources.title")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button("market.sources.add") { showAddSource = true }
+                    .controlSize(.small)
+            }
+
+            if environment.settings.marketplaceSources.isEmpty {
+                Text("market.sources.empty")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            ForEach(environment.settings.marketplaceSources) { source in
+                HStack(spacing: 8) {
+                    Image(systemName: source.isOfficial ? "checkmark.seal" : "globe")
+                        .font(.caption)
+                        .foregroundStyle(source.isOfficial ? Color.accentColor : Color.secondary)
+                    Text(verbatim: source.name)
+                        .font(.callout)
+                    Text(verbatim: source.url)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Spacer()
+                    Toggle("", isOn: Binding(
+                        get: { source.isEnabled },
+                        set: { environment.marketplace.setSourceEnabled(id: source.id, enabled: $0) }
+                    ))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .controlSize(.mini)
+                    if !source.isOfficial {
+                        Button {
+                            environment.marketplace.removeSource(id: source.id)
+                        } label: {
+                            Image(systemName: "minus.circle")
+                        }
+                        .buttonStyle(.borderless)
+                        .help(Text("market.sources.remove"))
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+    }
+
+    private var addSourceSheet: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("market.sources.addTitle")
+                .font(.headline)
+
+            TextField("market.sources.name", text: $newName)
+            TextField("market.sources.url", text: $newURL)
+            TextField("market.sources.key", text: $newKey)
+
+            Text("market.sources.hint")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack {
+                Spacer()
+                Button("common.cancel", role: .cancel) {
+                    showAddSource = false
+                }
+                Button("market.sources.confirm") {
+                    let trimmedURL = newURL.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let trimmedKey = newKey.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let fallbackName = URL(string: trimmedURL)?.host ?? trimmedURL
+                    environment.marketplace.addSource(
+                        MarketplaceSource(
+                            id: UUID().uuidString,
+                            name: newName.isEmpty ? fallbackName : newName,
+                            url: trimmedURL,
+                            publicKey: trimmedKey
+                        )
+                    )
+                    newName = ""; newURL = ""; newKey = ""
+                    showAddSource = false
+                    Task { await environment.marketplace.refresh() }
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(newURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+        }
+        .padding(20)
+        .frame(width: 480)
+    }
+
     // MARK: - 列表
 
     @ViewBuilder
@@ -149,6 +255,9 @@ struct MarketplacePane: View {
                                 .background(Color.secondary.opacity(0.14), in: Capsule())
                         }
                     }
+                    Text("market.item.source \(market.sourceName(of: item.sourceID))")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
                     if let size = item.plugin.size {
                         Text(ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file))
                             .font(.caption2)

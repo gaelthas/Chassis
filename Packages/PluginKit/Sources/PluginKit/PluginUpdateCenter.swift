@@ -4,9 +4,10 @@ import PluginAPI
 
 /// 插件市场与自动更新。
 ///
-/// 职责边界：
-/// - 只负责「发现新版本 → 下载 → 交给 PluginInstaller」；信任校验完全复用安装链路。
-/// - 不碰权限：更新若改变了能力声明，`PluginConsentStore` 的清单指纹会让插件回到「需要重新授权」。
+/// 支持多个来源：官方市场来自 Info.plist，用户可追加第三方市场。合并规则：
+/// - 按来源顺序取第一个出现的插件 ID（官方在前），后面的同名插件忽略；
+/// - 每个来源独立校验自己的签名公钥，互不共享信任；
+/// - 任一来源失败不影响其它来源，失败原因汇总到 `lastError`。
 @MainActor
 @Observable
 public final class PluginUpdateCenter {
@@ -28,12 +29,13 @@ public final class PluginUpdateCenter {
 
     public struct Item: Identifiable {
         public let plugin: MarketplacePlugin
+        /// 该插件来自哪个市场来源（用于 UI 标注与排障）。
+        public let sourceID: String
         public var state: ItemState
 
         public var id: String { plugin.id }
     }
 
-    /// 自动检查周期：应用常驻菜单栏，6 小时足够且不会造成负担。
     private let automaticInterval: TimeInterval = 6 * 3600
     private let minimumManualRefreshInterval: TimeInterval = 60
 
@@ -42,10 +44,11 @@ public final class PluginUpdateCenter {
     private let settings: HostSettings
     private let hostVersion: String
     private let logStore: LogStore
-    /// 安装完成后通知基座刷新插件注册表；在初始化后由宿主注入，避免初始化顺序耦合。
+
     public var onInstalled: @MainActor () -> Void
 
     private var index: MarketplaceIndex?
+    private var sourceMap: [String: String] = [:]
     private var autoTask: Task<Void, Never>?
 
     public private(set) var status: Status = .idle
@@ -71,8 +74,12 @@ public final class PluginUpdateCenter {
 
     // MARK: - 查询
 
+    public var enabledSources: [MarketplaceSource] {
+        settings.marketplaceSources.filter { $0.isEnabled && $0.resolvedURL != nil }
+    }
+
     public var isConfigured: Bool {
-        !settings.marketplaceURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        !enabledSources.isEmpty
     }
 
     public var availableUpdateCount: Int {
@@ -83,9 +90,12 @@ public final class PluginUpdateCenter {
         items.filter { if case .notInstalled = $0.state { return true } else { return false } }.count
     }
 
+    public func sourceName(of id: String) -> String {
+        settings.marketplaceSources.first { $0.id == id }?.name ?? id
+    }
+
     // MARK: - 检查
 
-    /// 打开市场页时调用：60 秒内不重复请求。
     public func refreshIfStale() async {
         if let lastChecked, Date().timeIntervalSince(lastChecked) < minimumManualRefreshInterval {
             return
@@ -94,40 +104,64 @@ public final class PluginUpdateCenter {
     }
 
     public func refresh() async {
-        guard let url = marketplaceURL else {
+        let sources = enabledSources
+        guard !sources.isEmpty else {
             status = .failed(MarketplaceError.notConfigured.localizedDescription)
-            lastError = status.message
+            lastError = status.errorMessage
             return
         }
 
         status = .checking
         lastError = nil
-        do {
-            let fetched = try await client.fetchIndex(
-                from: url,
-                publicKeyBase64: settings.marketplacePublicKey.isEmpty ? nil : settings.marketplacePublicKey
-            )
-            index = fetched
-            apply(fetched)
-            lastChecked = Date()
-            status = .ready
-            logStore.append(
-                level: .info,
-                pluginID: "com.gaelthas.chassis:market",
-                message: "市场索引已更新：\(fetched.plugins.count) 个插件，\(availableUpdateCount) 个可更新"
-            )
-        } catch {
-            let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+
+        var merged: [String: (plugin: MarketplacePlugin, sourceID: String)] = [:]
+        var failures: [String] = []
+
+        for source in sources {
+            guard let url = source.resolvedURL else { continue }
+            do {
+                let fetched = try await client.fetchIndex(
+                    from: url,
+                    publicKeyBase64: source.publicKey.isEmpty ? nil : source.publicKey
+                )
+                var added = 0
+                for plugin in fetched.plugins where merged[plugin.id] == nil {
+                    merged[plugin.id] = (plugin, source.id)
+                    added += 1
+                }
+                logStore.append(
+                    level: .info,
+                    pluginID: "com.gaelthas.chassis:market",
+                    message: "市场来源 \(source.name)：\(fetched.plugins.count) 个插件，采纳 \(added) 个"
+                )
+            } catch {
+                let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                failures.append("\(source.name)：\(message)")
+                logStore.append(level: .error, pluginID: "com.gaelthas.chassis:market", message: "来源 \(source.name) 失败：\(message)")
+            }
+        }
+
+        guard !merged.isEmpty else {
+            let message = failures.isEmpty ? "所有市场来源都没有返回插件" : failures.joined(separator: "；")
             status = .failed(message)
             lastError = message
-            logStore.append(level: .error, pluginID: "com.gaelthas.chassis:market", message: "检查更新失败：\(message)")
+            return
         }
-    }
 
-    private var marketplaceURL: URL? {
-        let raw = settings.marketplaceURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !raw.isEmpty, let url = URL(string: raw) else { return nil }
-        return url
+        let combined = MarketplaceIndex(plugins: merged.values.map(\.plugin))
+        index = combined
+        sourceMap = merged.mapValues(\.sourceID)
+        apply(combined)
+        lastChecked = Date()
+        status = .ready
+        if !failures.isEmpty {
+            lastError = failures.joined(separator: "；")
+        }
+        logStore.append(
+            level: .info,
+            pluginID: "com.gaelthas.chassis:market",
+            message: "市场已合并：\(combined.plugins.count) 个插件，\(availableUpdateCount) 个可更新"
+        )
     }
 
     private func apply(_ fetched: MarketplaceIndex) {
@@ -135,16 +169,17 @@ public final class PluginUpdateCenter {
         items = fetched.plugins
             .filter { $0.apiVersion <= 1 }
             .map { plugin in
+                let sourceID = sourceMap[plugin.id] ?? MarketplaceSource.officialID
                 guard SemanticVersion.isAtLeast(hostVersion, plugin.minHostVersion) else {
-                    return Item(plugin: plugin, state: .incompatible(minimumHostVersion: plugin.minHostVersion))
+                    return Item(plugin: plugin, sourceID: sourceID, state: .incompatible(minimumHostVersion: plugin.minHostVersion))
                 }
                 guard let installedVersion = installed[plugin.id] else {
-                    return Item(plugin: plugin, state: .notInstalled)
+                    return Item(plugin: plugin, sourceID: sourceID, state: .notInstalled)
                 }
                 if SemanticVersion.isAtLeast(installedVersion, plugin.version) {
-                    return Item(plugin: plugin, state: .installed)
+                    return Item(plugin: plugin, sourceID: sourceID, state: .installed)
                 }
-                return Item(plugin: plugin, state: .updateAvailable(installedVersion: installedVersion))
+                return Item(plugin: plugin, sourceID: sourceID, state: .updateAvailable(installedVersion: installedVersion))
             }
             .sorted { lhs, rhs in
                 rank(lhs.state) == rank(rhs.state)
@@ -183,7 +218,6 @@ public final class PluginUpdateCenter {
             )
             let staged = try installer.inspect(url: archive, policy: policy)
 
-            // 市场只能分发它索引里声明的那个插件，防止「挂羊头卖狗肉」。
             guard staged.manifest.id == plugin.id else {
                 throw MarketplaceError.downloadFailed("包内插件 ID（\(staged.manifest.id)）与索引不一致")
             }
@@ -197,7 +231,7 @@ public final class PluginUpdateCenter {
             logStore.append(
                 level: .info,
                 pluginID: "com.gaelthas.chassis:market",
-                message: "已安装 \(plugin.id) v\(plugin.version)"
+                message: "已安装 \(plugin.id) v\(plugin.version)（来源 \(sourceName(of: items[position].sourceID))）"
             )
 
             if let previousCapabilities {
@@ -212,7 +246,6 @@ public final class PluginUpdateCenter {
                 }
             }
 
-            // 重新按索引计算一次，避免「安装完仍显示可安装」。
             if let index {
                 apply(index)
             }
@@ -223,7 +256,6 @@ public final class PluginUpdateCenter {
         }
     }
 
-    /// 自动更新只处理「已有新版本」的项，顺序执行避免并发解压/复制。
     public func installAllUpdates() async {
         let targets = items.filter { if case .updateAvailable = $0.state { return true } else { return false } }.map(\.id)
         for id in targets {
@@ -233,13 +265,11 @@ public final class PluginUpdateCenter {
 
     // MARK: - 自动检查
 
-    /// 启动时常驻检查 + 周期检查。应用未配置市场地址时直接跳过。
     public func startAutomaticUpdates() {
         autoTask?.cancel()
         guard isConfigured, settings.autoCheckPluginUpdates else { return }
 
         autoTask = Task { [weak self] in
-            // 启动阶段先让插件与 UI 就绪，避免和首屏竞争。
             try? await Task.sleep(for: .seconds(5))
             while !Task.isCancelled {
                 guard let self else { return }
@@ -256,10 +286,28 @@ public final class PluginUpdateCenter {
         autoTask?.cancel()
         autoTask = nil
     }
+
+    // MARK: - 来源管理
+
+    public func addSource(_ source: MarketplaceSource) {
+        guard !settings.marketplaceSources.contains(where: { $0.id == source.id }) else { return }
+        settings.marketplaceSources.append(source)
+        logStore.append(level: .info, pluginID: "com.gaelthas.chassis:market", message: "新增市场来源：\(source.name)")
+    }
+
+    public func removeSource(id: String) {
+        settings.marketplaceSources.removeAll { $0.id == id && !$0.isOfficial }
+        items.removeAll { $0.sourceID == id }
+    }
+
+    public func setSourceEnabled(id: String, enabled: Bool) {
+        guard let position = settings.marketplaceSources.firstIndex(where: { $0.id == id }) else { return }
+        settings.marketplaceSources[position].isEnabled = enabled
+    }
 }
 
 private extension PluginUpdateCenter.Status {
-    var message: String? {
+    var errorMessage: String? {
         if case let .failed(message) = self { return message }
         return nil
     }

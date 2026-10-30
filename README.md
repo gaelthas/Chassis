@@ -127,6 +127,22 @@ swift run PluginCheck Chassis-Plugins/Examples/dist/HelloPlugin.chassisplugin
   └─ 自动安装：默认关闭；更新若改变能力声明，插件会暂停并要求重新授权
 ```
 
+**多市场**：官方市场地址内置在 Info.plist（默认指向 `Chassis-Plugins` 仓库的 `Market/index.json`），
+用户可在「插件市场 → 添加市场…」追加任意第三方市场。每个市场自带签名公钥，互不共享信任；
+同名插件按来源顺序取第一个（官方优先）。
+
+**发布**（在 `Chassis-Plugins` 仓库）：
+
+```bash
+./Scripts/publish.sh --bump patch SlowQuit   # 只升 SlowQuit 的版本并发布
+./Scripts/publish.sh                         # 全部插件按当前版本重新打包
+# 产物：Market/packages/<id>-<version>.zip + 签名后的 Market/index.json
+git add Manifests Market && git commit -m "release: SlowQuit" && git push
+```
+
+索引里每个插件只出现一次（最新版）。只发布一个插件时，其余条目原样复用旧包文件，
+所以不需要给每个版本单独建 GitHub Release——整个 `Market/` 目录就是一个可增量更新的市场。
+
 本地联调（DEBUG 构建允许本地未签名索引）：
 
 ```bash

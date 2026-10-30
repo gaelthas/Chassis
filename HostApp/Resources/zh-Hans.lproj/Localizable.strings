@@ -109,6 +109,18 @@
 "install.publisher.sameTeam" = "与基座同一开发者";
 "install.publisher.thirdParty" = "第三方";
 
+"market.sources.title" = "市场来源";
+"market.sources.add" = "添加市场…";
+"market.sources.addTitle" = "添加第三方市场";
+"market.sources.name" = "名称";
+"market.sources.url" = "索引地址（https://…/index.json）";
+"market.sources.key" = "签名公钥（base64，可留空）";
+"market.sources.hint" = "每个市场有各自的签名公钥，互不共享信任。留空只对 DEBUG 构建的本地来源有效。";
+"market.sources.confirm" = "添加";
+"market.sources.remove" = "移除该市场";
+"market.sources.empty" = "还没有任何市场来源。";
+"market.item.source" = "来自 %@";
+
 /* 插件市场 */
 "pane.marketplace" = "插件市场";
 

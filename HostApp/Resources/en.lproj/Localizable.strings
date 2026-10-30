@@ -109,6 +109,18 @@
 "install.publisher.sameTeam" = "Same developer as the host";
 "install.publisher.thirdParty" = "Third-party";
 
+"market.sources.title" = "Market sources";
+"market.sources.add" = "Add Source…";
+"market.sources.addTitle" = "Add a third-party market";
+"market.sources.name" = "Name";
+"market.sources.url" = "Index URL (https://…/index.json)";
+"market.sources.key" = "Signing key (base64, optional)";
+"market.sources.hint" = "Each market keeps its own signing key; trust is not shared. Leaving it empty only works for local sources in DEBUG builds.";
+"market.sources.confirm" = "Add";
+"market.sources.remove" = "Remove this source";
+"market.sources.empty" = "No market sources configured yet.";
+"market.item.source" = "from %@";
+
 /* Plugin marketplace */
 "pane.marketplace" = "Marketplace";
 

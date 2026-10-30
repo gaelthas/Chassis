@@ -198,3 +198,38 @@ bash Chassis-Plugins/Market/build-market.sh  # zip + sha256 + 签名 → Market/
 - 应用自身的自动更新（当前只覆盖插件；`ChassisUpdateURL` 仍是占位）。
 - 索引缓存与 ETag / 条件请求（目前每次全量拉取，索引很小）。
 - 市场侧的权限说明文案（目前复用插件清单里的能力枚举）。
+
+---
+
+## 12. 多市场与增量发布（v2）
+
+### 12.1 多来源
+
+- 官方来源来自 Info.plist（`ChassisMarketplaceURL` / `ChassisMarketplacePublicKey`），用户不可删除，可停用。
+- 第三方来源由用户在「添加市场…」中录入：名称 + 索引地址 + 该市场的签名公钥。
+- 合并规则：按来源顺序取第一个出现的插件 ID（官方优先），后出现的同名插件忽略；
+  每个来源独立验签，任一来源失败不影响其它来源，失败原因汇总展示。
+- 存储：`host.marketplaceSources`（JSON 数组）。旧版 `host.marketplaceURL` / `host.marketplacePublicKey`
+  会自动迁移成「自定义市场」来源，不会丢配置。
+
+### 12.2 增量发布
+
+`Chassis-Plugins` 的发布单位是「插件」而不是「Release」：
+
+```
+Manifests/<id>.json        版本号 = 该插件当前版本（发布脚本可自动 +1）
+Market/packages/<id>-<版本>.zip
+Market/index.json          所有插件的最新版本清单（签名）
+```
+
+`Scripts/publish.sh --bump patch SlowQuit` 会：升 `SlowQuit` 的版本 → 只重建它的包 →
+写入新的 zip（旧版本 zip 保留，便于回滚）→ 重建并签名 `index.json`。
+
+因此「这次只更新了一个插件」是完全正常的：索引里只有它的 `version/sha256/downloadURL` 变了，
+其余条目指向上一版包文件，基座按 `installedVersion < indexVersion` 判定更新。
+
+### 12.3 托管
+
+默认用 `raw.githubusercontent.com/gaelthas/Chassis-Plugins/main/Market/...`，零运维；
+也可以改 `MARKET_BASE_URL` 指向 GitHub Pages / 对象存储 / CDN。
+注意：raw 有几分钟缓存，且仓库必须是公开的（私有仓库需要 token，当前客户端不支持）。

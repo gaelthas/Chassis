@@ -18,6 +18,7 @@ struct MarketCheckMain {
             exit(2)
         }
         let publicKey = arguments.count > 2 ? arguments[2] : ""
+        let onlyID = arguments.count > 3 ? arguments[3] : nil
         let hostVersion = "1.0.0"
 
         do {
@@ -26,8 +27,9 @@ struct MarketCheckMain {
             suite.removePersistentDomain(forName: suiteName)
 
             let settings = HostSettings(defaults: suite)
-            settings.marketplaceURL = url.absoluteString
-            settings.marketplacePublicKey = publicKey
+            settings.marketplaceSources = [
+                MarketplaceSource(id: "official", name: "Test Market", url: url.absoluteString, publicKey: publicKey, isOfficial: true)
+            ]
             settings.allowThirdPartyPlugins = true
 
             let logStore = LogStore()
@@ -60,7 +62,10 @@ struct MarketCheckMain {
             for item in center.items {
                 print("   - \(item.plugin.id) v\(item.plugin.version) → \(item.state)")
             }
-            guard let target = center.items.first(where: { if case .notInstalled = $0.state { return true } else { return false } }) else {
+            let installable = center.items.filter { if case .notInstalled = $0.state { return true } else { return false } }
+            let target = onlyID.flatMap { id in installable.first { $0.id == id } }
+                ?? installable.first
+            guard let target else {
                 print("✗ 索引里没有可安装的插件")
                 exit(1)
             }
@@ -75,9 +80,10 @@ struct MarketCheckMain {
 
             // ⑤ 用一个「版本更高」的索引验证更新检测（不改动仓库里的包，只改临时索引）。
             if publicKey.isEmpty || arguments.count > 3 {
-                if let upgradeIndex = try makeUpgradeIndex(from: url, bumpTo: "9.9.9") {
-                    settings.marketplaceURL = upgradeIndex.absoluteString
-                    settings.marketplacePublicKey = ""  // 临时索引未签名，DEBUG 本地来源放行
+                if let upgradeIndex = try makeUpgradeIndex(from: url, targetID: target.id, bumpTo: "9.9.9") {
+                    settings.marketplaceSources = [
+                        MarketplaceSource(id: "official", name: "Upgrade Test", url: upgradeIndex.absoluteString, publicKey: "")
+                    ]
                     await center.refresh()
                     let state = center.items.first { $0.id == target.id }?.state
                     print("⑤ 高版本索引检测：\(state ?? .notInstalled)")
@@ -101,7 +107,7 @@ struct MarketCheckMain {
 
     /// 把索引里的第一个插件版本改成 `bumpTo`，写到临时文件。签名索引也能处理：取 payload 原文。
     @MainActor
-    private static func makeUpgradeIndex(from url: URL, bumpTo: String) throws -> URL? {
+    private static func makeUpgradeIndex(from url: URL, targetID: String, bumpTo: String) throws -> URL? {
         let data = try Data(contentsOf: url)
         let payloadData: Data
         if let envelope = try? JSONDecoder().decode(MarketplaceEnvelope.self, from: data) {
@@ -114,7 +120,8 @@ struct MarketCheckMain {
               !plugins.isEmpty else {
             return nil
         }
-        plugins[0]["version"] = bumpTo
+        guard let position = plugins.firstIndex(where: { ($0["id"] as? String) == targetID }) else { return nil }
+        plugins[position]["version"] = bumpTo
         object["plugins"] = plugins
         let upgraded = try JSONSerialization.data(withJSONObject: object, options: [.prettyPrinted, .sortedKeys])
         let destination = FileManager.default.temporaryDirectory

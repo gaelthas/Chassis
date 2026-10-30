@@ -21,9 +21,9 @@
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>ChassisMarketplacePublicKey</key>
-	<string></string>
+	<string>viVbaAgf2FQMGA0gDeXaaodeBoGH3/PiInmxQwGAizM=</string>
 	<key>ChassisMarketplaceURL</key>
-	<string></string>
+	<string>https://raw.githubusercontent.com/gaelthas/Chassis-Plugins/main/Market/index.json</string>
 	<key>ChassisSummary</key>
 	<string>插件化 macOS 工具基座</string>
 	<key>ChassisUpdateURL</key>
