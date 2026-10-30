@@ -79,7 +79,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.gaelthas.chassis
         PRODUCT_NAME: Chassis
-        MARKETING_VERSION: 1.0.1
+        MARKETING_VERSION: 1.0.2
         CURRENT_PROJECT_VERSION: 2
         ENABLE_APP_SANDBOX: NO
         ENABLE_HARDENED_RUNTIME: YES
