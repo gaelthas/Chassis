@@ -13,8 +13,15 @@ cd "$(dirname "$0")/.."
 VERSION="${1:-$(grep -m1 'MARKETING_VERSION:' project.yml | sed 's/.*MARKETING_VERSION: *//' | tr -d '"')}"
 TAG="v$VERSION"
 
-command -v gh >/dev/null || { echo "缺少 gh：brew install gh" >&2; exit 1; }
-gh auth status >/dev/null 2>&1 || { echo "gh 未登录：gh auth login" >&2; exit 1; }
+# gh 只用于「本地上传产物」；没装也能发布——推 tag 交给 GitHub Actions。
+HAS_GH=0
+if command -v gh >/dev/null && gh auth status >/dev/null 2>&1; then
+  HAS_GH=1
+elif command -v gh >/dev/null; then
+  echo "⚠️  gh 未登录（gh auth login）；将只推 tag，由 GitHub Actions 发布"
+else
+  echo "⚠️  未安装 gh；将只推 tag，由 GitHub Actions 发布（brew install gh 可本地上传）"
+fi
 
 if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
   echo "tag $TAG 已存在；请先删除或换版本号（git tag -d $TAG）" >&2
@@ -59,11 +66,15 @@ git push origin HEAD
 git tag -a "$TAG" -m "Chassis $VERSION"
 git push origin "$TAG"
 
-echo "== 创建 GitHub Release =="
-gh release create "$TAG" "$DMG" "$ZIP" \
-  --title "Chassis $VERSION" \
-  --generate-notes
-
-echo
-echo "完成：$(gh release view "$TAG" --json url --jq .url)"
-echo "提示：推送 tag 也会触发 .github/workflows/release.yml；两者二选一即可。"
+if [ "$HAS_GH" = "1" ]; then
+  echo "== 创建 GitHub Release（本地产物）=="
+  gh release create "$TAG" "$DMG" "$ZIP" \
+    --title "Chassis $VERSION" \
+    --generate-notes
+  echo
+  echo "完成：$(gh release view "$TAG" --json url --jq .url)"
+else
+  echo
+  echo "已推送 tag $TAG。GitHub Actions 会自动构建并创建 Release："
+  echo "  https://github.com/gaelthas/Chassis/actions"
+fi
