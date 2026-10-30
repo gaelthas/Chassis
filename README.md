@@ -179,9 +179,11 @@ swift run MarketCheck "file://$PWD/Chassis-Plugins/Market/index.json"
 git tag -a v1.0.2 -m "Chassis 1.0.2" && git push origin v1.0.2
 ```
 
-- 配置仓库 secrets 后产物可直接运行：
+- 配置仓库 secrets 后产物可直接运行（**Settings → Secrets and variables → Actions → New repository secret**）：
   - `MACOS_CERT_P12`：`.p12` 的 base64（`security export -t identities -f pkcs12 -k login.keychain-db -o cert.p12 && base64 -i cert.p12 | pbcopy`）
   - `MACOS_CERT_PASSWORD`：导出时设置的密码
+  - 名称必须完全一致；fork/PR 触发的 workflow 拿不到 secrets，只能在主仓库推 tag 验证
+  - 配好后 CI 会打印 `find-identity` 与 `codesign -dv` 的 TeamIdentifier，可据此确认确实用了证书签名
 - 未配置则走 `CHASSIS_NO_SIGN=1` 的无签名构建，用户首次打开需手动放行
 - 工作流用 `softprops/action-gh-release`，Release Notes 由 GitHub 自动生成
 
