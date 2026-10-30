@@ -123,13 +123,12 @@ final class KeyboardEventTap {
         onCreationResult = completion
         let runtime = self.runtime
 
-        let mask = CGEventMask(
-            (1 << CGEventType.keyDown.rawValue)
-                | (1 << CGEventType.keyUp.rawValue)
-                | (1 << CGEventType.flagsChanged.rawValue)
-                | (1 << CGEventType.tapDisabledByTimeout.rawValue)
-                | (1 << CGEventType.tapDisabledByUserInput.rawValue)
-        )
+        // 拆开写：链式位运算在旧版编译器（Xcode 16 / Swift 6.0）会触发
+        // "unable to type-check this expression in reasonable time"。
+        let eventTypes: [CGEventType] = [
+            .keyDown, .keyUp, .flagsChanged, .tapDisabledByTimeout, .tapDisabledByUserInput,
+        ]
+        let mask = eventTypes.reduce(CGEventMask(0)) { $0 | (1 << $1.rawValue) }
 
         let thread = Thread { [weak self, runtime] in
             guard let port = CGEvent.tapCreate(
@@ -162,7 +161,7 @@ final class KeyboardEventTap {
             CFRunLoopRun()
         }
         thread.name = "com.gaelthas.chassis.tap.keyboard"
-        thread.qualityOfService = .userInteractive
+        thread.qualityOfService = QualityOfService.userInteractive
         thread.stackSize = 512 * 1024
         self.thread = thread
         thread.start()

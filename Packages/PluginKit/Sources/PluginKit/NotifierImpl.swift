@@ -74,13 +74,24 @@ public final class NotifierImpl: NSObject {
         }
     }
 
+    /// `UNNotificationSettings` 不是 Sendable，直接把整个对象 await 回主线程在 Swift 6 下是非法的；
+    /// 只把它里面的 `authorizationStatus`（Sendable 枚举）带回来。
+    private nonisolated static func currentAuthorizationStatus() async -> UNAuthorizationStatus? {
+        guard Bundle.main.bundleURL.pathExtension == "app" else { return nil }
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        return settings.authorizationStatus
+    }
+
     public func refreshAuthorization() async {
-        guard let center else {
+        guard center != nil else {
             authorization = .notDetermined
             return
         }
-        let settings = await center.notificationSettings()
-        switch settings.authorizationStatus {
+        guard let status = await Self.currentAuthorizationStatus() else {
+            authorization = .notDetermined
+            return
+        }
+        switch status {
         case .authorized, .provisional, .ephemeral:
             authorization = .authorized
         case .denied:
