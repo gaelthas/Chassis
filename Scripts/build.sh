@@ -40,6 +40,15 @@ fi
 SIGN_ARGS=()
 if [ "${CHASSIS_NO_SIGN:-0}" = "1" ]; then
   SIGN_ARGS=(CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="-")
+else
+  # CI：证书被导入临时钥匙串后，必须显式告诉 codesign 去哪个钥匙串找身份，
+  # 否则会出现 "No signing certificate" 或静默产出未签名包。
+  if [ -n "${CHASSIS_KEYCHAIN:-}" ]; then
+    SIGN_ARGS+=("OTHER_CODE_SIGN_FLAGS=--keychain $CHASSIS_KEYCHAIN")
+  fi
+  if [ -n "${CHASSIS_SIGN_STYLE:-}" ]; then
+    SIGN_ARGS+=("CODE_SIGN_STYLE=$CHASSIS_SIGN_STYLE")
+  fi
 fi
 
 xcodebuild \
