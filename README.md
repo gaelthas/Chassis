@@ -72,6 +72,7 @@ swift build --package-path Chassis-Plugins     # 插件仓库（独立构建）
 | `WindowSwitcher` | ⌥Tab 在所有窗口间切换；图标模式默认，实时缩略图可选 | `.inputMonitoring` + `.accessibility`，可选 `.screenCapture` |
 | `DockHoverPreview` | 悬停 Dock 图标弹出该应用窗口预览，点击切换；图标默认，缩略图可选 | `.accessibility`，可选 `.screenCapture` |
 | `UsageStatistics` | 按日统计各应用前台时长（本地保留 30 天） | 无（零权限） |
+| `KeyboardStatistics` | 统计每个按键的使用次数：键盘热力图 + 时间范围筛选 + 每日柱状图（本地保留 30 天，不记录输入内容） | `.inputMonitoring` |
 | `Harness` | 基座探针（仅 Debug 构建注册） | `.accessibility` + `.inputMonitoring`，可选 `.screenCapture` |
 
 **基座不内置任何插件**：全新安装后列表为空，插件全部以 `.chassisplugin` 包导入（或从插件市场安装）。
