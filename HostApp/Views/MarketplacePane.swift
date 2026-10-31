@@ -38,8 +38,10 @@ struct MarketplacePane: View {
                     statusLine
                 }
                 Spacer()
-                Button("market.check") {
+                Button {
                     Task { await market.refresh() }
+                } label: {
+                    Label("market.check", systemImage: "arrow.clockwise")
                 }
                 .disabled(market.status == .checking || !market.isConfigured)
             }
@@ -200,15 +202,10 @@ struct MarketplacePane: View {
         if !market.isConfigured {
             notConfigured
         } else if market.items.isEmpty {
-            VStack(spacing: 8) {
-                Image(systemName: "bag")
-                    .font(.system(size: 30))
-                    .foregroundStyle(.tertiary)
-                Text("market.empty.title")
-                    .font(.callout)
+            ContentUnavailableView {
+                Label("market.empty.title", systemImage: "bag")
+            } description: {
                 Text("market.empty.detail")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
@@ -222,16 +219,18 @@ struct MarketplacePane: View {
     private func row(_ item: PluginUpdateCenter.Item) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: "puzzlepiece.extension")
-                .font(.system(size: 20))
-                .frame(width: 24)
+                .font(.system(size: 15, weight: .medium))
+                .frame(width: 34, height: 34)
+                .background(Color.accentColor.opacity(0.13), in: RoundedRectangle(cornerRadius: 8))
                 .foregroundStyle(.tint)
 
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 8) {
                     Text(verbatim: item.plugin.name)
-                        .font(.body)
+                        .font(.body.weight(.medium))
                     Text(verbatim: "v\(item.plugin.version)")
                         .font(.caption)
+                        .monospacedDigit()
                         .foregroundStyle(.secondary)
                     if let vendor = item.plugin.vendor {
                         Text(verbatim: vendor)

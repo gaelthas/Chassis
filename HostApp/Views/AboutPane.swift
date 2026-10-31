@@ -55,13 +55,17 @@ struct AboutPane: View {
             .frame(width: 320)
 
             HStack(spacing: 10) {
-                Button("about.exportDiagnostics") {
+                Button {
                     DiagnosticsExporter.export(environment: environment)
+                } label: {
+                    Label("about.exportDiagnostics", systemImage: "square.and.arrow.up")
                 }
-                Button("about.checkUpdates") {
+                Button {
                     if let updateURL {
                         NSWorkspace.shared.open(updateURL)
                     }
+                } label: {
+                    Label("about.checkUpdates", systemImage: "arrow.down.circle")
                 }
                 .disabled(updateURL == nil)
             }

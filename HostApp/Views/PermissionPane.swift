@@ -76,7 +76,6 @@ private struct CapabilityRow: View {
             Spacer(minLength: 12)
 
             statusLabel
-                .frame(width: 96, alignment: .trailing)
 
             if granted {
                 EmptyView()
@@ -84,13 +83,17 @@ private struct CapabilityRow: View {
                 Button("permissions.openSettings") {
                     environment.gate.openSystemSettingsPane(capability)
                 }
+                .controlSize(.small)
             } else {
                 Button("permissions.grant") {
                     environment.gate.requestFromUserInterface(capability)
                 }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
                 Button("permissions.openSettings") {
                     environment.gate.openSystemSettingsPane(capability)
                 }
+                .controlSize(.small)
             }
         }
         .padding(.vertical, 2)
@@ -113,21 +116,29 @@ private struct CapabilityRow: View {
         }
     }
 
+    /// 状态徽章：图标 + 文案装进浅色胶囊，三种状态一眼可分。
     private var statusLabel: some View {
-        Group {
-            if restricted {
-                Label("permissions.status.restricted", systemImage: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.orange)
-            } else if granted {
-                Label("permissions.status.granted", systemImage: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
-            } else {
-                Label("permissions.status.notGranted", systemImage: "circle")
-                    .foregroundStyle(.secondary)
-            }
+        let (key, icon): (LocalizedStringKey, String)
+        let tint: Color
+        if restricted {
+            (key, icon) = ("permissions.status.restricted", "exclamationmark.triangle.fill")
+            tint = .orange
+        } else if granted {
+            (key, icon) = ("permissions.status.granted", "checkmark.circle.fill")
+            tint = .green
+        } else {
+            (key, icon) = ("permissions.status.notGranted", "circle")
+            tint = .secondary
+        }
+        return HStack(spacing: 4) {
+            Image(systemName: icon)
+            Text(key)
         }
         .font(.caption)
-        .labelStyle(.titleAndIcon)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(tint.opacity(0.14), in: Capsule())
+        .foregroundStyle(tint)
     }
 }
 
@@ -145,35 +156,44 @@ private struct NotificationRow: View {
             Spacer(minLength: 12)
 
             statusLabel
-                .frame(width: 96, alignment: .trailing)
 
             if environment.notifier.authorization != .authorized {
                 Button("permissions.grant") {
                     Task { _ = await environment.notifier.requestAuthorization() }
                 }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
                 Button("permissions.openSettings") {
                     SystemSettingsPane.open(.notifications)
                 }
+                .controlSize(.small)
             }
         }
         .padding(.vertical, 2)
     }
 
-    @ViewBuilder
-    private var statusLabel: some View {
+    private var statusInfo: (key: LocalizedStringKey, icon: String, tint: Color) {
         switch environment.notifier.authorization {
         case .authorized:
-            Label("permissions.status.granted", systemImage: "checkmark.circle.fill")
-                .foregroundStyle(.green)
-                .font(.caption)
+            ("permissions.status.granted", "checkmark.circle.fill", .green)
         case .denied:
-            Label("permissions.status.notGranted", systemImage: "circle")
-                .foregroundStyle(.secondary)
-                .font(.caption)
+            ("permissions.status.notGranted", "circle", .secondary)
         case .notDetermined:
-            Label("permissions.status.notDetermined", systemImage: "circle.dashed")
-                .foregroundStyle(.secondary)
-                .font(.caption)
+            ("permissions.status.notDetermined", "circle.dashed", .secondary)
         }
+    }
+
+    @ViewBuilder
+    private var statusLabel: some View {
+        let info = statusInfo
+        HStack(spacing: 4) {
+            Image(systemName: info.icon)
+            Text(info.key)
+        }
+        .font(.caption)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(info.tint.opacity(0.14), in: Capsule())
+        .foregroundStyle(info.tint)
     }
 }

@@ -97,14 +97,22 @@ struct PluginListPane: View {
 
     private var header: some View {
         HStack(spacing: 10) {
+            Text("pane.plugins")
+                .font(.title3.weight(.semibold))
             Text("plugins.count \(environment.registry.installedCount)")
                 .font(.callout)
                 .foregroundStyle(.secondary)
+                .monospacedDigit()
             Spacer()
-            Button("plugins.install") { choosePackage() }
+            Button {
+                choosePackage()
+            } label: {
+                Label("plugins.install", systemImage: "plus")
+            }
+            .buttonStyle(.borderedProminent)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
     }
 
     private func choosePackage() {
@@ -144,16 +152,18 @@ private struct PluginRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: entry.manifest.iconSystemName)
-                .font(.system(size: 18))
-                .frame(width: 24)
+                .font(.system(size: 15, weight: .medium))
+                .frame(width: 34, height: 34)
+                .background(Color.accentColor.opacity(0.13), in: RoundedRectangle(cornerRadius: 8))
                 .foregroundStyle(.tint)
 
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 8) {
                     Text(entry.manifest.title, bundle: entry.manifest.resourceBundle)
-                        .font(.body)
+                        .font(.body.weight(.medium))
                     Text(verbatim: "v\(entry.manifest.version)")
                         .font(.caption)
+                        .monospacedDigit()
                         .foregroundStyle(.secondary)
                     if let info = entry.source.externalInfo {
                         // 与基座同 Team 签名 = 官方插件；否则才是第三方。
@@ -174,9 +184,7 @@ private struct PluginRow: View {
                     ForEach(Array(entry.manifest.requiredCapabilities).sorted(by: { $0.rawValue < $1.rawValue }), id: \.self) { capability in
                         CapabilityBadge(capability: capability)
                     }
-                    Text(entry.state.titleKey)
-                        .font(.caption2)
-                        .foregroundStyle(entry.state.tint)
+                    stateBadge
                 }
             }
 
@@ -209,7 +217,8 @@ private struct PluginRow: View {
                 )
             } label: {
                 Image(systemName: "gearshape")
-                    .font(.system(size: 14))
+                    .font(.system(size: 13))
+                    .frame(width: 22, height: 22)
             }
             .buttonStyle(.borderless)
             .disabled(!isActive)
@@ -220,7 +229,8 @@ private struct PluginRow: View {
                 confirmUninstall = true
             } label: {
                 Image(systemName: "trash")
-                    .font(.system(size: 14))
+                    .font(.system(size: 13))
+                    .frame(width: 22, height: 22)
             }
             .buttonStyle(.borderless)
             .disabled(!entry.isExternal)
@@ -231,7 +241,8 @@ private struct PluginRow: View {
                 onShowDetail(entry.manifest)
             } label: {
                 Image(systemName: "info.circle")
-                    .font(.system(size: 15))
+                    .font(.system(size: 13))
+                    .frame(width: 22, height: 22)
             }
             .buttonStyle(.borderless)
             .help(Text("plugins.detail.help"))
@@ -246,6 +257,18 @@ private struct PluginRow: View {
             Button("common.cancel", role: .cancel) {}
         } message: {
             Text("plugins.uninstall.message")
+        }
+    }
+
+    /// 状态徽章：实心圆点 + 文案，比纯文字更扫得出来。
+    private var stateBadge: some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(entry.state.tint)
+                .frame(width: 6, height: 6)
+            Text(entry.state.titleKey)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
         }
     }
 }

@@ -10,41 +10,44 @@ struct GeneralPane: View {
 
     var body: some View {
         Form {
-            Section("general.section.startup") {
+            Section {
                 Toggle("general.launchAtLogin", isOn: launchAtLoginBinding)
-                Text("general.launchAtLogin.caption")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            } header: {
+                Text("general.section.startup")
+            } footer: {
                 if let error = environment.launchAtLoginError {
                     Text(error)
-                        .font(.caption)
                         .foregroundStyle(.red)
+                } else {
+                    Text("general.launchAtLogin.caption")
                 }
             }
 
-            Section("general.section.window") {
+            Section {
                 Toggle("general.showMenuBarIcon", isOn: menuBarBinding)
-                Text("general.showMenuBarIcon.caption")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
                 Toggle("general.showSettingsOnLaunch", isOn: showSettingsOnLaunchBinding)
+            } header: {
+                Text("general.section.window")
+            } footer: {
+                Text("general.showMenuBarIcon.caption")
             }
 
-            Section("general.section.plugins") {
+            Section {
                 Toggle("general.allowThirdParty", isOn: allowThirdPartyBinding)
+            } header: {
+                Text("general.section.plugins")
+            } footer: {
                 Text("general.allowThirdParty.caption")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
 
-            Section("general.section.quit") {
+            Section {
                 Button("general.quit", role: .destructive) {
                     NSApp.terminate(nil)
                 }
+            } header: {
+                Text("general.section.quit")
+            } footer: {
                 Text("general.quit.caption")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
