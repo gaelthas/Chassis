@@ -38,7 +38,7 @@
 "permissions.status.restricted" = "受限";
 "permissions.status.notDetermined" = "未询问";
 "permissions.noConsumers" = "当前无插件使用";
-"permissions.consumers" = "%lld 个已启用插件正在使用";
+"permissions.consumers %lld" = "%lld 个已启用插件正在使用";
 "permissions.notification.title" = "通知";
 "permissions.notification.detail" = "用于发送操作结果提示（被拒时静默降级）";
 
@@ -60,7 +60,7 @@
 "permissions.staleNote" = "若系统设置中已开启但仍显示未授权：系统按「代码签名」识别应用。同一应用若存在多份拷贝（例如 .build 下的构建产物与 /Applications 里的副本），或开发期用 ad-hoc 签名重新构建过，系统会把它们当成不同应用，你授权的可能是另一份。处理办法：移除列表里的旧条目后重新添加当前应用，或重启应用。输入监控在部分系统版本上需要重启应用才生效。";
 
 /* 插件安装与逐插件授权 */
-"plugins.count" = "%lld 个插件";
+"plugins.count %lld" = "%lld 个插件";
 "plugins.install" = "安装插件…";
 "plugins.install.panelTitle" = "选择插件包";
 "plugins.source.external" = "第三方";
@@ -86,7 +86,7 @@
 "install.confirm" = "安装";
 "install.error.title" = "安装失败";
 
-"consent.title" = "允许「%@」使用这些能力？";
+"consent.title %@" = "允许「%@」使用这些能力？";
 "consent.subtitle" = "系统授权已由基座持有，不会再弹出系统对话框。";
 "consent.requiredSection" = "必需能力";
 "consent.optionalSection" = "可选能力";
@@ -119,7 +119,7 @@
 "market.sources.confirm" = "添加";
 "market.sources.remove" = "移除该市场";
 "market.sources.empty" = "还没有任何市场来源。";
-"market.item.source" = "来自 %@";
+"market.item.source %@" = "来自 %@";
 
 /* 插件市场 */
 "pane.marketplace" = "插件市场";
@@ -129,16 +129,16 @@
 "market.checking" = "正在检查…";
 "market.neverChecked" = "尚未检查更新";
 "market.lastChecked" = "上次检查";
-"market.updatesAvailable" = "%lld 个可更新";
-"market.installableCount" = "%lld 个可安装";
+"market.updatesAvailable %lld" = "%lld 个可更新";
+"market.installableCount %lld" = "%lld 个可安装";
 "market.autoCheck" = "自动检查更新";
 "market.autoInstall" = "自动安装更新";
 "market.autoInstall.note" = "自动安装只处理常规升级；若新版本改变了能力声明，插件会暂停并要求重新确认授权。";
 "market.install" = "安装";
 "market.update" = "更新";
-"market.fromVersion" = "当前 %@";
+"market.fromVersion %@" = "当前 %@";
 "market.installed" = "已安装";
-"market.incompatible" = "需要基座 %@";
+"market.incompatible %@" = "需要基座 %@";
 "market.retry" = "重试";
 "market.empty.title" = "市场暂无可用插件";
 "market.empty.detail" = "索引为空，或其中的插件与当前基座不兼容。";
@@ -166,9 +166,9 @@
 "plugins.resetConfiguration" = "重置此插件配置";
 
 /* 关于 */
-"about.version" = "版本 %@";
+"about.version %@" = "版本 %@";
 "about.hostVersion" = "基座版本";
 "about.plugins" = "插件";
-"about.plugins.count" = "%1$lld 个已启用 / %2$lld 个已安装";
+"about.plugins.count %lld %lld" = "%1$lld 个已启用 / %2$lld 个已安装";
 "about.exportDiagnostics" = "导出诊断信息";
 "about.checkUpdates" = "检查更新";

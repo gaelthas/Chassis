@@ -21,28 +21,43 @@ public final class HostSettings {
 
     @ObservationIgnored private let defaults: UserDefaults
 
+    // 所有 didSet 都先做等值判断：设置项被 `MenuBarExtra` 之类的外部回调反复写回时，
+    // 同值写入不应产生 UserDefaults 落盘与任何连带副作用。
     public var enabledPluginIDs: Set<String> {
-        didSet { defaults.set(Array(enabledPluginIDs), forKey: Key.enabledPlugins) }
+        didSet {
+            guard enabledPluginIDs != oldValue else { return }
+            defaults.set(Array(enabledPluginIDs), forKey: Key.enabledPlugins)
+        }
     }
 
     /// 关闭后仍必须有其他途径打开设置窗口（再次启动应用），否则用户会把自己锁在外面（§6.9）。
     public var showMenuBarIcon: Bool {
-        didSet { defaults.set(showMenuBarIcon, forKey: Key.showMenuBarIcon) }
+        didSet {
+            guard showMenuBarIcon != oldValue else { return }
+            defaults.set(showMenuBarIcon, forKey: Key.showMenuBarIcon)
+        }
     }
 
     public var showSettingsOnLaunch: Bool {
-        didSet { defaults.set(showSettingsOnLaunch, forKey: Key.showSettingsOnLaunch) }
+        didSet {
+            guard showSettingsOnLaunch != oldValue else { return }
+            defaults.set(showSettingsOnLaunch, forKey: Key.showSettingsOnLaunch)
+        }
     }
 
     /// 允许安装/加载非同一 Team 签名的插件。默认关闭：
     /// 打开后基座必须关闭 Library Validation，安全基线下降（见外部插件设计文档 §4.4）。
     public var allowThirdPartyPlugins: Bool {
-        didSet { defaults.set(allowThirdPartyPlugins, forKey: Key.allowThirdPartyPlugins) }
+        didSet {
+            guard allowThirdPartyPlugins != oldValue else { return }
+            defaults.set(allowThirdPartyPlugins, forKey: Key.allowThirdPartyPlugins)
+        }
     }
 
     /// 插件市场来源列表。官方来源来自 Info.plist，用户可追加第三方市场。
     public var marketplaceSources: [MarketplaceSource] {
         didSet {
+            guard marketplaceSources != oldValue else { return }
             if let data = try? JSONEncoder().encode(marketplaceSources) {
                 defaults.set(data, forKey: Key.marketplaceSources)
             }
@@ -50,12 +65,18 @@ public final class HostSettings {
     }
 
     public var autoCheckPluginUpdates: Bool {
-        didSet { defaults.set(autoCheckPluginUpdates, forKey: Key.autoCheckPluginUpdates) }
+        didSet {
+            guard autoCheckPluginUpdates != oldValue else { return }
+            defaults.set(autoCheckPluginUpdates, forKey: Key.autoCheckPluginUpdates)
+        }
     }
 
     /// 自动安装更新。默认关闭：更新可能改变能力声明，导致插件需要重新授权。
     public var autoInstallPluginUpdates: Bool {
-        didSet { defaults.set(autoInstallPluginUpdates, forKey: Key.autoInstallPluginUpdates) }
+        didSet {
+            guard autoInstallPluginUpdates != oldValue else { return }
+            defaults.set(autoInstallPluginUpdates, forKey: Key.autoInstallPluginUpdates)
+        }
     }
 
     public init(defaults: UserDefaults = .standard) {

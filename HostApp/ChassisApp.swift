@@ -20,10 +20,21 @@ struct ChassisApp: App {
         .menuBarExtraStyle(.menu)
     }
 
+    /// `MenuBarExtraController` 用 KVO 监视 `NSStatusItem`，状态一变就在回调里同步回写这个 binding。
+    /// 若把回写直接落到 `HostSettings`，会形成：写偏好 → 整棵视图重算 → 改 `NSStatusItem` →
+    /// KVO 再回写 → 继续写偏好 的无限循环（AttributeGraph 节点无限增长）。
+    /// 因此：同值回写直接丢弃；确实需要改偏好时挪出当前更新栈，避免在 KVO 回调里改可观察状态。
     private var menuBarInserted: Binding<Bool> {
         Binding(
             get: { environment.settings.showMenuBarIcon },
-            set: { environment.settings.showMenuBarIcon = $0 }
+            set: { newValue in
+                guard newValue != environment.settings.showMenuBarIcon else { return }
+                // 两道检查都要保留：值在 true/false 之间抖动时，仅靠同步 guard 拦不住。
+                Task { @MainActor in
+                    guard newValue != environment.settings.showMenuBarIcon else { return }
+                    environment.settings.showMenuBarIcon = newValue
+                }
+            }
         )
     }
 }

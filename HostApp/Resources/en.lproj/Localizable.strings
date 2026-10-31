@@ -38,7 +38,7 @@
 "permissions.status.restricted" = "Restricted";
 "permissions.status.notDetermined" = "Not asked";
 "permissions.noConsumers" = "No plugin is using it";
-"permissions.consumers" = "Used by %lld enabled plugin(s)";
+"permissions.consumers %lld" = "Used by %lld enabled plugin(s)";
 "permissions.notification.title" = "Notifications";
 "permissions.notification.detail" = "Used for operation results (silently degrades when denied)";
 
@@ -60,7 +60,7 @@
 "permissions.staleNote" = "If System Settings shows it enabled but this page disagrees: macOS identifies apps by code signature. When several copies exist (e.g. a build in .build and the one in /Applications), or when an ad-hoc signed build is rebuilt, macOS treats them as different apps and the grant may belong to another copy. Remove the stale entry and add the current app again, or restart the app. Input Monitoring may require a restart on some macOS versions.";
 
 /* Plugin install & per-plugin consent */
-"plugins.count" = "%lld plugin(s)";
+"plugins.count %lld" = "%lld plugin(s)";
 "plugins.install" = "Install Plugin…";
 "plugins.install.panelTitle" = "Choose a plugin package";
 "plugins.source.external" = "Third-party";
@@ -86,7 +86,7 @@
 "install.confirm" = "Install";
 "install.error.title" = "Installation failed";
 
-"consent.title" = "Allow “%@” to use these capabilities?";
+"consent.title %@" = "Allow “%@” to use these capabilities?";
 "consent.subtitle" = "The system permission is already held by the host; no system dialog will appear again.";
 "consent.requiredSection" = "Required";
 "consent.optionalSection" = "Optional";
@@ -119,7 +119,7 @@
 "market.sources.confirm" = "Add";
 "market.sources.remove" = "Remove this source";
 "market.sources.empty" = "No market sources configured yet.";
-"market.item.source" = "from %@";
+"market.item.source %@" = "from %@";
 
 /* Plugin marketplace */
 "pane.marketplace" = "Marketplace";
@@ -129,16 +129,16 @@
 "market.checking" = "Checking…";
 "market.neverChecked" = "Not checked yet";
 "market.lastChecked" = "Last checked";
-"market.updatesAvailable" = "%lld update(s)";
-"market.installableCount" = "%lld installable";
+"market.updatesAvailable %lld" = "%lld update(s)";
+"market.installableCount %lld" = "%lld installable";
 "market.autoCheck" = "Check for updates automatically";
 "market.autoInstall" = "Install updates automatically";
 "market.autoInstall.note" = "Automatic installs cover routine upgrades only. If a new version changes its declared capabilities, the plugin pauses until you confirm the grant again.";
 "market.install" = "Install";
 "market.update" = "Update";
-"market.fromVersion" = "installed %@";
+"market.fromVersion %@" = "installed %@";
 "market.installed" = "Installed";
-"market.incompatible" = "Requires host %@";
+"market.incompatible %@" = "Requires host %@";
 "market.retry" = "Retry";
 "market.empty.title" = "Nothing available";
 "market.empty.detail" = "The index is empty, or none of its plugins are compatible with this host.";
@@ -166,9 +166,9 @@
 "plugins.resetConfiguration" = "Reset plugin configuration";
 
 /* About */
-"about.version" = "Version %@";
+"about.version %@" = "Version %@";
 "about.hostVersion" = "Host version";
 "about.plugins" = "Plugins";
-"about.plugins.count" = "%1$lld enabled / %2$lld installed";
+"about.plugins.count %lld %lld" = "%1$lld enabled / %2$lld installed";
 "about.exportDiagnostics" = "Export Diagnostics";
 "about.checkUpdates" = "Check for Updates";
