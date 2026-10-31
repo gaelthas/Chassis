@@ -53,7 +53,8 @@ mkdir -p dist
 rm -f "$DMG" "$ZIP"
 
 echo "== 打包 =="
-hdiutil create -volname "Chassis" -srcfolder "$APP" -ov -format UDZO "$DMG" >/dev/null
+# dmg 内含 Applications 快捷方式，打开后可直接拖拽安装。
+./Scripts/package.sh "$APP" "$DMG"
 /usr/bin/ditto -c -k --keepParent "$APP" "$ZIP"
 
 if ! git diff --quiet -- project.yml; then

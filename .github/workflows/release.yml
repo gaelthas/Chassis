@@ -70,7 +70,8 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           APP=".build/xcode/Build/Products/Release/Chassis.app"
           mkdir -p dist
-          hdiutil create -volname "Chassis" -srcfolder "$APP" -ov -format UDZO "dist/Chassis-$VERSION.dmg" >/dev/null
+          # dmg 内含 Applications 快捷方式，打开后可直接拖拽安装。
+          ./Scripts/package.sh "$APP" "dist/Chassis-$VERSION.dmg"
           /usr/bin/ditto -c -k --keepParent "$APP" "dist/Chassis-$VERSION.zip"
 
       - name: Publish release

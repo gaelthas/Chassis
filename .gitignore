@@ -5,7 +5,11 @@ DerivedData/
 *.xcworkspace
 xcuserdata/
 .codebuddy/
+.workbuddy/
 
 # 插件仓库：独立 git 仓库，基座仓库不跟踪
 Chassis-Plugins/
 dist/
+
+# 宣传物料（文案 + 截图），本地保留，不入库
+promo/
